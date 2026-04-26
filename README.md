@@ -153,7 +153,7 @@ Make sure you have the following installed:
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/SumitJoshi990/AyurSutra.git
+git clone https://github.com/riya-maurya10/AyurSutra.git
 cd AyurSutra
 ```
 
