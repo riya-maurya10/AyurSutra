@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: ayursutra
+
+  data:
+    mongodb:
+      uri: "mongodb+srv://riyamaur1979_db_user:GdB4ShePw95woE8k@ayursutracluster.nmh25ry.mongodb.net/ayursutra?retryWrites=true&w=majority&appName=AyurSutraCluster"
+
+server:
+  port: 9999
+
+logging:
+  level:
+    org.springframework.boot.context.properties: TRACE
