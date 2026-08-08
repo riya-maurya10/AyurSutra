@@ -12,3 +12,7 @@ server:
 logging:
   level:
     org.springframework.boot.context.properties: TRACE
+
+jwt:
+  secret: 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
+  expiration: 86400000
