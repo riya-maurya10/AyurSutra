@@ -13,6 +13,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreatePatientRequest {
 
+    @NotBlank(message = "User ID is required")
+    private String userId;
+
     @NotBlank(message = "Full name is required")
     private String fullName;
 

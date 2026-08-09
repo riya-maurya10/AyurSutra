@@ -6,8 +6,11 @@ import com.ayursutra.dto.response.PatientResponse;
 import com.ayursutra.entity.Patient;
 import com.ayursutra.mapper.PatientMapper;
 import com.ayursutra.repository.PatientRepository;
+import com.ayursutra.security.UserPrincipal;
 import com.ayursutra.service.PatientService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,11 +26,15 @@ public class PatientServiceImpl implements PatientService {
     public PatientResponse createPatient(CreatePatientRequest request) {
 
         if (patientRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Patient with this email already exists");
+            throw new RuntimeException(
+                    "Patient with this email already exists"
+            );
         }
 
         if (patientRepository.existsByPhone(request.getPhone())) {
-            throw new RuntimeException("Patient with this phone already exists");
+            throw new RuntimeException(
+                    "Patient with this phone already exists"
+            );
         }
 
         Patient patient = patientMapper.toEntity(request);
@@ -53,6 +60,23 @@ public class PatientServiceImpl implements PatientService {
                 .orElseThrow(() ->
                         new RuntimeException("Patient not found"));
 
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        UserPrincipal principal =
+                (UserPrincipal) authentication.getPrincipal();
+
+        String loggedInUserId = principal.getUser().getId();
+
+        // PATIENT can only access their own profile
+        if (principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PATIENT"))) {
+
+            if (!patient.getUserId().equals(loggedInUserId)) {
+                throw new RuntimeException("Access Denied");
+            }
+        }
+
         return patientMapper.toResponse(patient);
     }
 
@@ -67,7 +91,8 @@ public class PatientServiceImpl implements PatientService {
 
         patientMapper.updateEntity(patient, request);
 
-        Patient updatedPatient = patientRepository.save(patient);
+        Patient updatedPatient =
+                patientRepository.save(patient);
 
         return patientMapper.toResponse(updatedPatient);
     }
@@ -80,5 +105,54 @@ public class PatientServiceImpl implements PatientService {
         }
 
         patientRepository.deleteById(id);
+    }
+
+    @Override
+    public PatientResponse getMyProfile() {
+
+        String userId = getLoggedInUserId();
+
+        System.out.println("LOGGED IN USER ID = " + userId);
+
+        Patient patient = patientRepository.findByUserId(userId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Patient profile not found"
+                        ));
+
+        return patientMapper.toResponse(patient);
+    }
+
+    @Override
+    public PatientResponse updateMyProfile(
+            UpdatePatientRequest request) {
+
+        String userId = getLoggedInUserId();
+
+        Patient patient = patientRepository.findByUserId(userId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Patient profile not found"
+                        ));
+
+        patientMapper.updateEntity(patient, request);
+
+        Patient updatedPatient =
+                patientRepository.save(patient);
+
+        return patientMapper.toResponse(updatedPatient);
+    }
+
+    private String getLoggedInUserId() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        UserPrincipal principal =
+                (UserPrincipal) authentication.getPrincipal();
+
+        return principal.getUser().getId();
     }
 }

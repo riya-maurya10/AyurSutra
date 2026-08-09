@@ -20,4 +20,8 @@ public interface PatientService {
     );
 
     void deletePatient(String id);
+
+    PatientResponse getMyProfile();
+
+    PatientResponse updateMyProfile(UpdatePatientRequest request);
 }

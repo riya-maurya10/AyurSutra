@@ -7,6 +7,7 @@ import com.ayursutra.service.PatientService;
 import com.ayursutra.util.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,7 +19,12 @@ public class PatientController {
 
     private final PatientService patientService;
 
+    // =========================
+    // CREATE PATIENT
+    // =========================
+
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','RECEPTIONIST')")
     public ApiResponse<PatientResponse> createPatient(
             @Valid @RequestBody CreatePatientRequest request) {
 
@@ -29,7 +35,12 @@ public class PatientController {
         );
     }
 
+    // =========================
+    // GET ALL PATIENTS
+    // =========================
+
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','RECEPTIONIST')")
     public ApiResponse<List<PatientResponse>> getAllPatients() {
 
         return new ApiResponse<>(
@@ -39,7 +50,43 @@ public class PatientController {
         );
     }
 
+    // =========================
+    // GET MY PROFILE
+    // =========================
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ApiResponse<PatientResponse> getMyProfile() {
+
+        return new ApiResponse<>(
+                true,
+                "Patient profile fetched successfully",
+                patientService.getMyProfile()
+        );
+    }
+
+    // =========================
+    // UPDATE MY PROFILE
+    // =========================
+
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ApiResponse<PatientResponse> updateMyProfile(
+            @Valid @RequestBody UpdatePatientRequest request) {
+
+        return new ApiResponse<>(
+                true,
+                "Patient profile updated successfully",
+                patientService.updateMyProfile(request)
+        );
+    }
+
+    // =========================
+    // GET PATIENT BY ID
+    // =========================
+
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','RECEPTIONIST','PATIENT')")
     public ApiResponse<PatientResponse> getPatientById(
             @PathVariable String id) {
 
@@ -50,10 +97,15 @@ public class PatientController {
         );
     }
 
+    // =========================
+    // UPDATE PATIENT BY ID
+    // =========================
+
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     public ApiResponse<PatientResponse> updatePatient(
             @PathVariable String id,
-            @RequestBody UpdatePatientRequest request) {
+            @Valid @RequestBody UpdatePatientRequest request) {
 
         return new ApiResponse<>(
                 true,
@@ -62,7 +114,12 @@ public class PatientController {
         );
     }
 
+    // =========================
+    // DELETE PATIENT
+    // =========================
+
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<String> deletePatient(
             @PathVariable String id) {
 

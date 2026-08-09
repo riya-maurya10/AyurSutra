@@ -13,6 +13,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "patients")
 public class Patient extends BaseEntity {
 
+    private String userId;
+
     private String fullName;
 
     private String email;

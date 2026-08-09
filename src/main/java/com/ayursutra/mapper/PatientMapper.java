@@ -13,6 +13,7 @@ public class PatientMapper {
 
         Patient patient = new Patient();
 
+        patient.setUserId(request.getUserId());
         patient.setFullName(request.getFullName());
         patient.setEmail(request.getEmail());
         patient.setPhone(request.getPhone());
@@ -28,6 +29,7 @@ public class PatientMapper {
 
         return new PatientResponse(
                 patient.getId(),
+                patient.getUserId(),
                 patient.getFullName(),
                 patient.getEmail(),
                 patient.getPhone(),

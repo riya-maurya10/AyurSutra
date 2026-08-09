@@ -11,6 +11,8 @@ public class PatientResponse {
 
     private String id;
 
+    private String userId;
+
     private String fullName;
 
     private String email;
