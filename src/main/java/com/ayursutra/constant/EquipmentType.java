@@ -1,0 +1,11 @@
+package com.ayursutra.constant;
+
+public enum EquipmentType {
+
+    THERAPY_EQUIPMENT,
+    PANCHAKARMA_EQUIPMENT,
+    STEAM_EQUIPMENT,
+    MASSAGE_EQUIPMENT,
+    SHIRODHARA_EQUIPMENT,
+    GENERAL_EQUIPMENT
+}
