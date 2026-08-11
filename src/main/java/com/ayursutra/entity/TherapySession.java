@@ -27,6 +27,8 @@ public class TherapySession {
 
     private String therapyId;
 
+    private String roomId;
+
     private String therapyName;
 
     private Integer dayNumber;

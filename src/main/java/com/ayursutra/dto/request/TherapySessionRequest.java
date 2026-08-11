@@ -19,6 +19,8 @@ public class TherapySessionRequest {
 
     private String therapistId;
 
+    private String roomId;
+
     @NotBlank
     private String therapyId;
 

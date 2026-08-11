@@ -21,6 +21,10 @@ public interface TherapySessionRepository
             String therapistId
     );
 
+    List<TherapySession> findByRoomId(
+            String roomId
+    );
+
     List<TherapySession> findBySessionDate(
             LocalDate sessionDate
     );

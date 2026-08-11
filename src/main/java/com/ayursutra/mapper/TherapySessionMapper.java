@@ -26,6 +26,10 @@ public class TherapySessionMapper {
                 request.getTherapistId()
         );
 
+        session.setRoomId(
+                request.getRoomId()
+        );
+
         session.setTherapyId(
                 request.getTherapyId()
         );
@@ -88,6 +92,8 @@ public class TherapySessionMapper {
                 session.getPatientId(),
 
                 session.getTherapistId(),
+
+                session.getRoomId(),
 
                 session.getTherapyId(),
 

@@ -29,6 +29,10 @@ public interface TherapySessionService {
             String therapistId
     );
 
+    List<TherapySessionResponse> getSessionsByRoom(
+            String roomId
+    );
+
     List<TherapySessionResponse> getSessionsByDate(
             String date
     );

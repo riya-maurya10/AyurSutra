@@ -21,6 +21,8 @@ public class TherapySessionResponse {
 
     private String therapistId;
 
+    private String roomId;
+
     private String therapyId;
 
     private String therapyName;

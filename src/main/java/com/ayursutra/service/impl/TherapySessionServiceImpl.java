@@ -109,6 +109,16 @@ public class TherapySessionServiceImpl
                 .toList();
     }
 
+    @Override
+    public List<TherapySessionResponse> getSessionsByRoom(String roomId) {
+
+        return therapySessionRepository
+                .findByRoomId(roomId)
+                .stream()
+                .map(therapySessionMapper::toResponse)
+                .toList();
+    }
+
 
     @Override
     public List<TherapySessionResponse>
