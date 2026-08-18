@@ -284,6 +284,7 @@ public class TherapySessionServiceImpl
             );
         }
 
+        // Validate start and end time
         if (request.getStartTime() != null &&
                 request.getEndTime() != null) {
 

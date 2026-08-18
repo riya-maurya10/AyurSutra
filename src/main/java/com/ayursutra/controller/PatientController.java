@@ -1,14 +1,18 @@
 package com.ayursutra.controller;
 
+import com.ayursutra.dto.request.AuditLogRequest;
 import com.ayursutra.dto.request.CreatePatientRequest;
 import com.ayursutra.dto.request.UpdatePatientRequest;
 import com.ayursutra.dto.response.PatientResponse;
+import com.ayursutra.service.AuditService;
 import com.ayursutra.service.PatientService;
 import com.ayursutra.util.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.ayursutra.constant.AuditAction;
+
 
 import java.util.List;
 
@@ -19,6 +23,8 @@ public class PatientController {
 
     private final PatientService patientService;
 
+    private final AuditService auditService;
+
     // =========================
     // CREATE PATIENT
     // =========================
@@ -28,10 +34,25 @@ public class PatientController {
     public ApiResponse<PatientResponse> createPatient(
             @Valid @RequestBody CreatePatientRequest request) {
 
+        PatientResponse patient =
+                patientService.createPatient(request);
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.CREATE);
+        audit.setEntityType("PATIENT");
+        audit.setEntityId(patient.getId());
+        audit.setDescription(
+                "Patient created successfully"
+        );
+
+        auditService.createAuditLog(audit);
+
         return new ApiResponse<>(
                 true,
                 "Patient created successfully",
-                patientService.createPatient(request)
+                patient
         );
     }
 
@@ -107,10 +128,28 @@ public class PatientController {
             @PathVariable String id,
             @Valid @RequestBody UpdatePatientRequest request) {
 
+        PatientResponse patient =
+                patientService.updatePatient(
+                        id,
+                        request
+                );
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.UPDATE);
+        audit.setEntityType("PATIENT");
+        audit.setEntityId(patient.getId());
+        audit.setDescription(
+                "Patient information updated"
+        );
+
+        auditService.createAuditLog(audit);
+
         return new ApiResponse<>(
                 true,
                 "Patient updated successfully",
-                patientService.updatePatient(id, request)
+                patient
         );
     }
 
@@ -124,6 +163,18 @@ public class PatientController {
             @PathVariable String id) {
 
         patientService.deletePatient(id);
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.DELETE);
+        audit.setEntityType("PATIENT");
+        audit.setEntityId(id);
+        audit.setDescription(
+                "Patient deleted"
+        );
+
+        auditService.createAuditLog(audit);
 
         return new ApiResponse<>(
                 true,

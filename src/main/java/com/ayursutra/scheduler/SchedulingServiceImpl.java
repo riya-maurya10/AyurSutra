@@ -2,21 +2,26 @@ package com.ayursutra.scheduler;
 
 import com.ayursutra.dto.request.TherapySessionRequest;
 import com.ayursutra.dto.response.TherapySessionResponse;
+import com.ayursutra.entity.Therapist;
 import com.ayursutra.entity.Therapy;
 import com.ayursutra.entity.TherapyPlan;
 import com.ayursutra.exception.BadRequestException;
-import com.ayursutra.repository.TherapyPlanRepository;
-import com.ayursutra.repository.TherapyRepository;
+import com.ayursutra.repository.*;
 import com.ayursutra.service.TherapySessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.ayursutra.entity.TherapyDependency;
-import com.ayursutra.repository.TherapyDependencyRepository;
+
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.Optional;
 
 import java.time.LocalTime;
 import java.util.List;
+
+import com.ayursutra.constant.RoomType;
+import com.ayursutra.entity.Room;
+import com.ayursutra.repository.RoomRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +31,10 @@ public class SchedulingServiceImpl
     private final TherapyPlanRepository therapyPlanRepository;
 
     private final TherapyRepository therapyRepository;
+
+    private final TherapistRepository therapistRepository;
+
+    private final RoomRepository roomRepository;
 
     private final TherapyDependencyRepository therapyDependencyRepository;
 
@@ -139,12 +148,82 @@ public class SchedulingServiceImpl
 
 
         // -------------------------------------------------
-// 8. Validate Therapist Availability
+// 8. Validate / Automatically Allocate Therapist
 // -------------------------------------------------
 
         String therapistId = request.getTherapistId();
+        String roomId = request.getRoomId();
 
-        if (therapistId != null && !therapistId.isBlank()) {
+        if (therapistId == null || therapistId.isBlank()) {
+
+            // Automatically find an available therapist
+            // whose specialization matches the therapy name
+
+            List<Therapist> availableTherapists =
+                    therapistRepository
+                            .findBySpecializationAndAvailableTrue(
+                                    therapy.getName()
+                            );
+
+            Therapist selectedTherapist = null;
+
+            for (Therapist therapist : availableTherapists) {
+
+                List<TherapySessionResponse> therapistSessions =
+                        therapySessionService
+                                .getSessionsByTherapist(
+                                        therapist.getId()
+                                );
+
+                boolean therapistConflict =
+                        therapistSessions.stream()
+                                .anyMatch(session -> {
+
+                                    if (session.getSessionDate() == null ||
+                                            session.getStartTime() == null ||
+                                            session.getEndTime() == null) {
+                                        return false;
+                                    }
+
+                                    // Different day → no conflict
+                                    if (!session.getSessionDate()
+                                            .equals(request.getSessionDate())) {
+                                        return false;
+                                    }
+
+                                    // Check time overlap
+                                    return session.getStartTime()
+                                            .isBefore(endTime)
+                                            &&
+                                            session.getEndTime()
+                                                    .isAfter(
+                                                            request.getStartTime()
+                                                    );
+                                });
+
+                if (!therapistConflict) {
+                    selectedTherapist = therapist;
+                    break;
+                }
+            }
+
+            if (selectedTherapist == null) {
+
+                throw new BadRequestException(
+                        "No available therapist found for therapy: "
+                                + therapy.getName()
+                );
+            }
+
+            therapistId = selectedTherapist.getId();
+        }
+
+
+// -------------------------------------------------
+// Validate manually selected therapist
+// -------------------------------------------------
+
+        else {
 
             List<TherapySessionResponse> therapistSessions =
                     therapySessionService
@@ -160,21 +239,22 @@ public class SchedulingServiceImpl
                                     return false;
                                 }
 
-                                // Different day → no conflict
                                 if (!session.getSessionDate()
                                         .equals(request.getSessionDate())) {
                                     return false;
                                 }
 
-                                // Same therapist + overlapping time
                                 return session.getStartTime()
                                         .isBefore(endTime)
                                         &&
                                         session.getEndTime()
-                                                .isAfter(request.getStartTime());
+                                                .isAfter(
+                                                        request.getStartTime()
+                                                );
                             });
 
             if (therapistConflict) {
+
                 throw new BadRequestException(
                         "Therapist is already assigned to another session during this time"
                 );
@@ -182,79 +262,210 @@ public class SchedulingServiceImpl
         }
 
 
+        // -------------------------------------------------
+// 10. Automatically Allocate Room
+// -------------------------------------------------
+
+        if (roomId == null || roomId.isBlank()) {
+
+            RoomType requiredRoomType;
+
+            switch (therapy.getName().toLowerCase()) {
+
+                case "abhyanga":
+                    requiredRoomType = RoomType.THERAPY_ROOM;
+                    break;
+
+                case "swedana":
+                    requiredRoomType = RoomType.STEAM_ROOM;
+                    break;
+
+                case "shirodhara":
+                    requiredRoomType = RoomType.SHIRODHARA_ROOM;
+                    break;
+
+                case "vamana":
+                case "virechana":
+                case "basti":
+                case "raktamokshana":
+                    requiredRoomType = RoomType.PANCHAKARMA_ROOM;
+                    break;
+
+                default:
+                    requiredRoomType = RoomType.THERAPY_ROOM;
+            }
+
+            List<Room> availableRooms =
+                    roomRepository.findByTypeAndActiveTrue(
+                            requiredRoomType
+                    );
+
+            Room selectedRoom = null;
+
+            for (Room room : availableRooms) {
+
+                if (room.getCapacity() == null ||
+                        room.getCapacity() <= 0) {
+                    continue;
+                }
+
+                List<TherapySessionResponse> roomSessions =
+                        therapySessionService
+                                .getSessionsByRoom(room.getId());
+
+                long overlappingSessions =
+                        roomSessions.stream()
+                                .filter(session -> {
+
+                                    if (session.getSessionDate() == null ||
+                                            session.getStartTime() == null ||
+                                            session.getEndTime() == null) {
+                                        return false;
+                                    }
+
+                                    if (!session.getSessionDate()
+                                            .equals(request.getSessionDate())) {
+                                        return false;
+                                    }
+
+                                    return session.getStartTime()
+                                            .isBefore(endTime)
+                                            &&
+                                            session.getEndTime()
+                                                    .isAfter(
+                                                            request.getStartTime()
+                                                    );
+                                })
+                                .count();
+
+                System.out.println(
+                        "ROOM CAPACITY CHECK: "
+                                + room.getRoomNumber()
+                                + " | capacity = "
+                                + room.getCapacity()
+                                + " | overlapping sessions = "
+                                + overlappingSessions
+                );
+
+                if (overlappingSessions < room.getCapacity()) {
+
+                    selectedRoom = room;
+                    break;
+                }
+            }
+
+            if (selectedRoom == null) {
+
+                throw new BadRequestException(
+                        "No room available for "
+                                + therapy.getName()
+                                + " at "
+                                + request.getStartTime()
+                                + ". All suitable rooms are occupied or at full capacity."
+                );
+            }
+
+            roomId = selectedRoom.getId();
+
+            System.out.println(
+                    "ROOM AUTOMATICALLY ALLOCATED: "
+                            + selectedRoom.getRoomNumber()
+                            + " | capacity = "
+                            + selectedRoom.getCapacity()
+            );
+        }
+
 
         // -------------------------------------------------
-// 11. Validate Room Conflict
+// 11. Validate Manually Selected Room Capacity
 // -------------------------------------------------
 
         if (request.getRoomId() != null &&
                 !request.getRoomId().isBlank()) {
 
+            Room selectedRoom =
+                    roomRepository.findById(request.getRoomId())
+                            .orElseThrow(() ->
+                                    new BadRequestException(
+                                            "Room not found with ID: "
+                                                    + request.getRoomId()
+                                    )
+                            );
+
+            if (selectedRoom.getActive() == null ||
+                    !selectedRoom.getActive()) {
+
+                throw new BadRequestException(
+                        "Selected room is not active"
+                );
+            }
+
+            if (selectedRoom.getCapacity() == null ||
+                    selectedRoom.getCapacity() <= 0) {
+
+                throw new BadRequestException(
+                        "Selected room has invalid capacity"
+                );
+            }
+
             List<TherapySessionResponse> roomSessions =
                     therapySessionService
                             .getSessionsByRoom(request.getRoomId());
 
-            boolean roomConflict =
+            long overlappingSessions =
                     roomSessions.stream()
-                            .anyMatch(session -> {
+                            .filter(session -> {
 
                                 if (session.getSessionDate() == null ||
                                         session.getStartTime() == null ||
                                         session.getEndTime() == null) {
+
                                     return false;
                                 }
 
-                                // Different day → no conflict
+                                // Different date → no conflict
                                 if (!session.getSessionDate()
                                         .equals(request.getSessionDate())) {
+
                                     return false;
                                 }
 
-                                // Overlap condition
+                                // Check time overlap
                                 return session.getStartTime()
                                         .isBefore(endTime)
                                         &&
                                         session.getEndTime()
-                                                .isAfter(request.getStartTime());
-                            });
+                                                .isAfter(
+                                                        request.getStartTime()
+                                                );
+                            })
+                            .count();
 
-            if (roomConflict) {
+            if (overlappingSessions >= selectedRoom.getCapacity()) {
+
                 throw new BadRequestException(
-                        "Room is already occupied during this time"
+                        "Room "
+                                + selectedRoom.getRoomNumber()
+                                + " is already at full capacity ("
+                                + selectedRoom.getCapacity()
+                                + ") during this time"
                 );
             }
         }
 
 
         // -------------------------------------------------
-// 8. Validate Time Overlap
+// Validate Patient Time Overlap
 // -------------------------------------------------
 
-        List<TherapySessionResponse> allExistingSessions =
+        List<TherapySessionResponse> patientSessions =
                 therapySessionService
-                        .getSessionsByTherapyPlan(therapyPlan.getId());
+                        .getSessionsByPatient(
+                                therapyPlan.getPatientId()
+                        );
 
-        System.out.println("========== EXISTING SESSIONS ==========");
-
-        allExistingSessions.forEach(session -> {
-            System.out.println(
-                    "Therapy = " + session.getTherapyName()
-                            + " | Date = " + session.getSessionDate()
-                            + " | Start = " + session.getStartTime()
-                            + " | End = " + session.getEndTime()
-            );
-        });
-
-        System.out.println(
-                "NEW SESSION | Date = " + request.getSessionDate()
-                        + " | Start = " + request.getStartTime()
-                        + " | End = " + endTime
-        );
-
-        System.out.println("=======================================");
-
-        boolean timeConflict =
-                allExistingSessions.stream()
+        boolean patientTimeConflict =
+                patientSessions.stream()
                         .anyMatch(session -> {
 
                             if (session.getSessionDate() == null ||
@@ -263,29 +474,50 @@ public class SchedulingServiceImpl
                                 return false;
                             }
 
-                            // Different day → no conflict
-                            if (!session.getSessionDate()
-                                    .equals(request.getSessionDate())) {
-                                return false;
+                            LocalDateTime existingStart =
+                                    LocalDateTime.of(
+                                            session.getSessionDate(),
+                                            session.getStartTime()
+                                    );
+
+                            LocalDateTime existingEnd =
+                                    LocalDateTime.of(
+                                            session.getSessionDate(),
+                                            session.getEndTime()
+                                    );
+
+                            // Existing session crosses midnight
+                            if (!existingEnd.isAfter(existingStart)) {
+                                existingEnd = existingEnd.plusDays(1);
                             }
 
-                            // Overlap condition:
-                            // existingStart < newEnd
-                            // AND existingEnd > newStart
+                            LocalDateTime newStart =
+                                    LocalDateTime.of(
+                                            request.getSessionDate(),
+                                            request.getStartTime()
+                                    );
 
-                            return session.getStartTime()
-                                    .isBefore(endTime)
-                                    &&
-                                    session.getEndTime()
-                                            .isAfter(request.getStartTime());
+                            LocalDateTime newEnd =
+                                    LocalDateTime.of(
+                                            request.getSessionDate(),
+                                            endTime
+                                    );
+
+                            // New session crosses midnight
+                            if (!newEnd.isAfter(newStart)) {
+                                newEnd = newEnd.plusDays(1);
+                            }
+
+                            // Check patient time overlap
+                            return existingStart.isBefore(newEnd)
+                                    && existingEnd.isAfter(newStart);
                         });
 
-        if (timeConflict) {
+        if (patientTimeConflict) {
             throw new BadRequestException(
-                    "Therapy session overlaps with an existing session"
+                    "Patient already has another therapy session during this time"
             );
         }
-
 
 
         // -------------------------------------------------
@@ -339,11 +571,11 @@ public class SchedulingServiceImpl
         );
 
         sessionRequest.setTherapistId(
-                request.getTherapistId()
+                therapistId
         );
 
         sessionRequest.setRoomId(
-                request.getRoomId()
+                roomId
         );
 
         sessionRequest.setTherapyId(

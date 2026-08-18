@@ -14,8 +14,9 @@ public interface TherapyDependencyRepository
 
     List<TherapyDependency> findByTherapyIdAndActiveTrue(String therapyId);
 
-    boolean existsByTherapyIdAndRelatedTherapyId(
+    boolean existsByTherapyIdAndRelatedTherapyIdAndDependencyType(
             String therapyId,
-            String relatedTherapyId
+            String relatedTherapyId,
+            String dependencyType
     );
 }

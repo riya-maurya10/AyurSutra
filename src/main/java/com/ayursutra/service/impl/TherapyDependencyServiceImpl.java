@@ -37,9 +37,10 @@ public class TherapyDependencyServiceImpl
         }
 
         if (dependencyRepository
-                .existsByTherapyIdAndRelatedTherapyId(
+                .existsByTherapyIdAndRelatedTherapyIdAndDependencyType(
                         request.getTherapyId(),
-                        request.getRelatedTherapyId())) {
+                        request.getRelatedTherapyId(),
+                        request.getDependencyType().name())) {
 
             throw new IllegalArgumentException(
                     "This therapy dependency already exists"
