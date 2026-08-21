@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -108,6 +110,43 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
+    public PatientResponse createMyProfile(
+            UpdatePatientRequest request) {
+
+        String userId = getLoggedInUserId();
+
+        // Prevent duplicate patient profiles
+        if (patientRepository.findByUserId(userId).isPresent()) {
+            throw new RuntimeException(
+                    "Patient profile already exists"
+            );
+        }
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        UserPrincipal principal =
+                (UserPrincipal) authentication.getPrincipal();
+
+        Patient patient = new Patient();
+
+        patient.setUserId(userId);
+        patient.setFullName(principal.getUser().getFullName());
+        patient.setEmail(principal.getUser().getEmail());
+        patient.setPhone(principal.getUser().getPhone());
+
+        patient.setAge(request.getAge());
+        patient.setGender(request.getGender());
+        patient.setAddress(request.getAddress());
+        patient.setMedicalHistory(request.getMedicalHistory());
+
+        Patient savedPatient =
+                patientRepository.save(patient);
+
+        return patientMapper.toResponse(savedPatient);
+    }
+
+    @Override
     public PatientResponse getMyProfile() {
 
         String userId = getLoggedInUserId();
@@ -116,7 +155,8 @@ public class PatientServiceImpl implements PatientService {
 
         Patient patient = patientRepository.findByUserId(userId)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Patient profile not found"
                         ));
 

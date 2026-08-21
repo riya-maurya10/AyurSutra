@@ -31,3 +31,25 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# =========================
+# React / Vite Frontend
+# =========================
+
+ayursutra-frontend/node_modules/
+ayursutra-frontend/dist/
+ayursutra-frontend/build/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Frontend logs
+ayursutra-frontend/npm-debug.log*
+ayursutra-frontend/yarn-debug.log*
+ayursutra-frontend/yarn-error.log*
+
+# Windows metadata
+desktop.ini
+**/desktop.ini

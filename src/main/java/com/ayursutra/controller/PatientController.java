@@ -72,6 +72,22 @@ public class PatientController {
     }
 
     // =========================
+// CREATE MY PROFILE
+// =========================
+
+    @PostMapping("/me")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ApiResponse<PatientResponse> createMyProfile(
+            @RequestBody UpdatePatientRequest request) {
+
+        return new ApiResponse<>(
+                true,
+                "Patient profile created successfully",
+                patientService.createMyProfile(request)
+        );
+    }
+
+    // =========================
     // GET MY PROFILE
     // =========================
 

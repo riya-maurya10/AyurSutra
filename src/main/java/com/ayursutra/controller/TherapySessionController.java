@@ -1,7 +1,10 @@
 package com.ayursutra.controller;
 
+import com.ayursutra.constant.AuditAction;
+import com.ayursutra.dto.request.AuditLogRequest;
 import com.ayursutra.dto.request.TherapySessionRequest;
 import com.ayursutra.dto.response.TherapySessionResponse;
+import com.ayursutra.service.AuditService;
 import com.ayursutra.service.TherapySessionService;
 import com.ayursutra.util.ApiResponse;
 import jakarta.validation.Valid;
@@ -15,23 +18,45 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TherapySessionController {
 
-    private final TherapySessionService
-            therapySessionService;
+    private final TherapySessionService therapySessionService;
 
+    private final AuditService auditService;
+
+
+    // =========================
+    // CREATE SESSION
+    // =========================
 
     @PostMapping
-    public ApiResponse<TherapySessionResponse>
-    createSession(
-            @Valid @RequestBody
-            TherapySessionRequest request) {
+    public ApiResponse<TherapySessionResponse> createSession(
+            @Valid @RequestBody TherapySessionRequest request) {
+
+        TherapySessionResponse session =
+                therapySessionService.createSession(request);
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.CREATE);
+        audit.setEntityType("THERAPY_SESSION");
+        audit.setEntityId(session.getId());
+        audit.setDescription(
+                "Therapy session created"
+        );
+
+        auditService.createAuditLog(audit);
 
         return new ApiResponse<>(
                 true,
                 "Therapy session created successfully",
-                therapySessionService.createSession(request)
+                session
         );
     }
 
+
+    // =========================
+    // GET ALL
+    // =========================
 
     @GetMapping
     public ApiResponse<List<TherapySessionResponse>>
@@ -45,6 +70,10 @@ public class TherapySessionController {
     }
 
 
+    // =========================
+    // GET BY ID
+    // =========================
+
     @GetMapping("/{id}")
     public ApiResponse<TherapySessionResponse>
     getSessionById(
@@ -57,6 +86,10 @@ public class TherapySessionController {
         );
     }
 
+
+    // =========================
+    // GET BY PATIENT
+    // =========================
 
     @GetMapping("/patient/{patientId}")
     public ApiResponse<List<TherapySessionResponse>>
@@ -72,6 +105,10 @@ public class TherapySessionController {
     }
 
 
+    // =========================
+    // GET BY PLAN
+    // =========================
+
     @GetMapping("/plan/{therapyPlanId}")
     public ApiResponse<List<TherapySessionResponse>>
     getSessionsByTherapyPlan(
@@ -81,12 +118,14 @@ public class TherapySessionController {
                 true,
                 "Therapy plan sessions fetched successfully",
                 therapySessionService
-                        .getSessionsByTherapyPlan(
-                                therapyPlanId
-                        )
+                        .getSessionsByTherapyPlan(therapyPlanId)
         );
     }
 
+
+    // =========================
+    // GET BY THERAPIST
+    // =========================
 
     @GetMapping("/therapist/{therapistId}")
     public ApiResponse<List<TherapySessionResponse>>
@@ -97,12 +136,14 @@ public class TherapySessionController {
                 true,
                 "Therapist sessions fetched successfully",
                 therapySessionService
-                        .getSessionsByTherapist(
-                                therapistId
-                        )
+                        .getSessionsByTherapist(therapistId)
         );
     }
 
+
+    // =========================
+    // GET BY DATE
+    // =========================
 
     @GetMapping("/date/{date}")
     public ApiResponse<List<TherapySessionResponse>>
@@ -112,11 +153,14 @@ public class TherapySessionController {
         return new ApiResponse<>(
                 true,
                 "Sessions for date fetched successfully",
-                therapySessionService
-                        .getSessionsByDate(date)
+                therapySessionService.getSessionsByDate(date)
         );
     }
 
+
+    // =========================
+    // GET BY PLAN + DAY
+    // =========================
 
     @GetMapping("/plan/{therapyPlanId}/day/{dayNumber}")
     public ApiResponse<List<TherapySessionResponse>>
@@ -136,28 +180,63 @@ public class TherapySessionController {
     }
 
 
+    // =========================
+    // UPDATE
+    // =========================
+
     @PutMapping("/{id}")
     public ApiResponse<TherapySessionResponse>
     updateSession(
             @PathVariable String id,
-            @Valid @RequestBody
-            TherapySessionRequest request) {
+            @Valid @RequestBody TherapySessionRequest request) {
+
+        TherapySessionResponse session =
+                therapySessionService.updateSession(
+                        id,
+                        request
+                );
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.UPDATE);
+        audit.setEntityType("THERAPY_SESSION");
+        audit.setEntityId(session.getId());
+        audit.setDescription(
+                "Therapy session updated"
+        );
+
+        auditService.createAuditLog(audit);
 
         return new ApiResponse<>(
                 true,
                 "Therapy session updated successfully",
-                therapySessionService
-                        .updateSession(id, request)
+                session
         );
     }
 
 
+    // =========================
+    // DELETE
+    // =========================
+
     @DeleteMapping("/{id}")
-    public ApiResponse<String>
-    deleteSession(
+    public ApiResponse<String> deleteSession(
             @PathVariable String id) {
 
         therapySessionService.deleteSession(id);
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.DELETE);
+        audit.setEntityType("THERAPY_SESSION");
+        audit.setEntityId(id);
+        audit.setDescription(
+                "Therapy session deleted"
+        );
+
+        auditService.createAuditLog(audit);
 
         return new ApiResponse<>(
                 true,

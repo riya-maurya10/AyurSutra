@@ -1,7 +1,10 @@
 package com.ayursutra.controller;
 
+import com.ayursutra.constant.AuditAction;
+import com.ayursutra.dto.request.AuditLogRequest;
 import com.ayursutra.dto.request.PatientProgressRequest;
 import com.ayursutra.dto.response.PatientProgressResponse;
+import com.ayursutra.service.AuditService;
 import com.ayursutra.service.PatientProgressService;
 import com.ayursutra.util.ApiResponse;
 import jakarta.validation.Valid;
@@ -15,23 +18,46 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PatientProgressController {
 
-    private final PatientProgressService
-            patientProgressService;
+    private final PatientProgressService patientProgressService;
 
+    private final AuditService auditService;
+
+
+    // =========================
+    // CREATE
+    // =========================
 
     @PostMapping
     public ApiResponse<PatientProgressResponse>
     createProgress(
-            @Valid
-            @RequestBody PatientProgressRequest request) {
+            @Valid @RequestBody PatientProgressRequest request) {
+
+        PatientProgressResponse progress =
+                patientProgressService.createProgress(request);
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.CREATE);
+        audit.setEntityType("PATIENT_PROGRESS");
+        audit.setEntityId(progress.getId());
+        audit.setDescription(
+                "Patient progress assessment created"
+        );
+
+        auditService.createAuditLog(audit);
 
         return new ApiResponse<>(
                 true,
                 "Patient progress assessment created successfully",
-                patientProgressService.createProgress(request)
+                progress
         );
     }
 
+
+    // =========================
+    // GET ALL
+    // =========================
 
     @GetMapping
     public ApiResponse<List<PatientProgressResponse>>
@@ -45,6 +71,10 @@ public class PatientProgressController {
     }
 
 
+    // =========================
+    // GET BY ID
+    // =========================
+
     @GetMapping("/{id}")
     public ApiResponse<PatientProgressResponse>
     getProgressById(
@@ -57,6 +87,10 @@ public class PatientProgressController {
         );
     }
 
+
+    // =========================
+    // GET BY PATIENT
+    // =========================
 
     @GetMapping("/patient/{patientId}")
     public ApiResponse<List<PatientProgressResponse>>
@@ -72,6 +106,10 @@ public class PatientProgressController {
     }
 
 
+    // =========================
+    // GET BY THERAPY PLAN
+    // =========================
+
     @GetMapping("/therapy-plan/{therapyPlanId}")
     public ApiResponse<List<PatientProgressResponse>>
     getProgressByTherapyPlan(
@@ -81,10 +119,16 @@ public class PatientProgressController {
                 true,
                 "Therapy plan progress assessments fetched successfully",
                 patientProgressService
-                        .getProgressByTherapyPlan(therapyPlanId)
+                        .getProgressByTherapyPlan(
+                                therapyPlanId
+                        )
         );
     }
 
+
+    // =========================
+    // GET BY PATIENT + PLAN
+    // =========================
 
     @GetMapping(
             "/patient/{patientId}/therapy-plan/{therapyPlanId}"
@@ -106,23 +150,45 @@ public class PatientProgressController {
     }
 
 
+    // =========================
+    // UPDATE
+    // =========================
+
     @PutMapping("/{id}")
     public ApiResponse<PatientProgressResponse>
     updateProgress(
             @PathVariable String id,
-            @Valid
-            @RequestBody PatientProgressRequest request) {
+            @Valid @RequestBody PatientProgressRequest request) {
+
+        PatientProgressResponse progress =
+                patientProgressService.updateProgress(
+                        id,
+                        request
+                );
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.UPDATE);
+        audit.setEntityType("PATIENT_PROGRESS");
+        audit.setEntityId(progress.getId());
+        audit.setDescription(
+                "Patient progress assessment updated"
+        );
+
+        auditService.createAuditLog(audit);
 
         return new ApiResponse<>(
                 true,
                 "Patient progress assessment updated successfully",
-                patientProgressService.updateProgress(
-                        id,
-                        request
-                )
+                progress
         );
     }
 
+
+    // =========================
+    // DELETE
+    // =========================
 
     @DeleteMapping("/{id}")
     public ApiResponse<String>
@@ -130,6 +196,18 @@ public class PatientProgressController {
             @PathVariable String id) {
 
         patientProgressService.deleteProgress(id);
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.DELETE);
+        audit.setEntityType("PATIENT_PROGRESS");
+        audit.setEntityId(id);
+        audit.setDescription(
+                "Patient progress assessment deleted"
+        );
+
+        auditService.createAuditLog(audit);
 
         return new ApiResponse<>(
                 true,

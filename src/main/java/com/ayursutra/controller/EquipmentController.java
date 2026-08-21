@@ -1,6 +1,9 @@
 package com.ayursutra.controller;
 
+import com.ayursutra.constant.AuditAction;
+import com.ayursutra.dto.request.AuditLogRequest;
 import com.ayursutra.dto.request.EquipmentRequest;
+import com.ayursutra.service.AuditService;
 import com.ayursutra.service.EquipmentService;
 import com.ayursutra.util.ApiResponse;
 import jakarta.validation.Valid;
@@ -15,19 +18,45 @@ public class EquipmentController {
 
     private final EquipmentService equipmentService;
 
+    private final AuditService auditService;
+
+
+    // =========================
+    // CREATE
+    // =========================
+
     @PostMapping
     public ResponseEntity<?> createEquipment(
-            @Valid @RequestBody EquipmentRequest request
-    ) {
+            @Valid @RequestBody EquipmentRequest request) {
+
+        var equipment =
+                equipmentService.createEquipment(request);
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.CREATE);
+        audit.setEntityType("EQUIPMENT");
+        audit.setEntityId(equipment.getId());
+        audit.setDescription(
+                "Equipment created"
+        );
+
+        auditService.createAuditLog(audit);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         true,
                         "Equipment created successfully",
-                        equipmentService.createEquipment(request)
+                        equipment
                 )
         );
     }
+
+
+    // =========================
+    // GET ALL
+    // =========================
 
     @GetMapping
     public ResponseEntity<?> getAllEquipment() {
@@ -41,6 +70,11 @@ public class EquipmentController {
         );
     }
 
+
+    // =========================
+    // GET ACTIVE
+    // =========================
+
     @GetMapping("/active")
     public ResponseEntity<?> getActiveEquipment() {
 
@@ -52,6 +86,11 @@ public class EquipmentController {
                 )
         );
     }
+
+
+    // =========================
+    // GET AVAILABLE
+    // =========================
 
     @GetMapping("/available")
     public ResponseEntity<?> getAvailableEquipment() {
@@ -65,10 +104,14 @@ public class EquipmentController {
         );
     }
 
+
+    // =========================
+    // GET BY ROOM
+    // =========================
+
     @GetMapping("/room/{roomId}")
     public ResponseEntity<?> getEquipmentByRoom(
-            @PathVariable String roomId
-    ) {
+            @PathVariable String roomId) {
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
@@ -79,10 +122,14 @@ public class EquipmentController {
         );
     }
 
+
+    // =========================
+    // GET BY ID
+    // =========================
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getEquipmentById(
-            @PathVariable String id
-    ) {
+            @PathVariable String id) {
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
@@ -93,30 +140,65 @@ public class EquipmentController {
         );
     }
 
+
+    // =========================
+    // UPDATE
+    // =========================
+
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEquipment(
             @PathVariable String id,
-            @Valid @RequestBody EquipmentRequest request
-    ) {
+            @Valid @RequestBody EquipmentRequest request) {
+
+        var equipment =
+                equipmentService.updateEquipment(
+                        id,
+                        request
+                );
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.UPDATE);
+        audit.setEntityType("EQUIPMENT");
+        audit.setEntityId(equipment.getId());
+        audit.setDescription(
+                "Equipment updated"
+        );
+
+        auditService.createAuditLog(audit);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         true,
                         "Equipment updated successfully",
-                        equipmentService.updateEquipment(
-                                id,
-                                request
-                        )
+                        equipment
                 )
         );
     }
 
+
+    // =========================
+    // DELETE
+    // =========================
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEquipment(
-            @PathVariable String id
-    ) {
+            @PathVariable String id) {
 
         equipmentService.deleteEquipment(id);
+
+        AuditLogRequest audit =
+                new AuditLogRequest();
+
+        audit.setAction(AuditAction.DELETE);
+        audit.setEntityType("EQUIPMENT");
+        audit.setEntityId(id);
+        audit.setDescription(
+                "Equipment deleted"
+        );
+
+        auditService.createAuditLog(audit);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(

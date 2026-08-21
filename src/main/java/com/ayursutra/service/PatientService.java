@@ -21,6 +21,8 @@ public interface PatientService {
 
     void deletePatient(String id);
 
+    PatientResponse createMyProfile(UpdatePatientRequest request);
+
     PatientResponse getMyProfile();
 
     PatientResponse updateMyProfile(UpdatePatientRequest request);

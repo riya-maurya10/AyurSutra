@@ -23,7 +23,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public LoginResponse login(LoginRequest request) {
 
         authenticationManager.authenticate(
-
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
                         request.getPassword()
