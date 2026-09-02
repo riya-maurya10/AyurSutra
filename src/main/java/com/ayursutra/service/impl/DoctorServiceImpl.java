@@ -3,10 +3,14 @@ package com.ayursutra.service.impl;
 import com.ayursutra.dto.request.DoctorRequest;
 import com.ayursutra.dto.response.DoctorResponse;
 import com.ayursutra.entity.Doctor;
+import com.ayursutra.entity.User;
 import com.ayursutra.mapper.DoctorMapper;
 import com.ayursutra.repository.DoctorRepository;
+import com.ayursutra.security.UserPrincipal;
 import com.ayursutra.service.DoctorService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,7 +26,9 @@ public class DoctorServiceImpl implements DoctorService {
     public DoctorResponse createDoctor(DoctorRequest request) {
 
         if (doctorRepository.existsByLicenseNumber(request.getLicenseNumber())) {
-            throw new RuntimeException("Doctor with this license number already exists");
+            throw new RuntimeException(
+                    "Doctor with this license number already exists"
+            );
         }
 
         Doctor doctor = doctorMapper.toEntity(request);
@@ -47,6 +53,34 @@ public class DoctorServiceImpl implements DoctorService {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException("Doctor not found"));
+
+        return doctorMapper.toResponse(doctor);
+    }
+
+    @Override
+    public DoctorResponse getMyProfile() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !(authentication.getPrincipal() instanceof UserPrincipal)) {
+
+            throw new RuntimeException("User not authenticated");
+        }
+
+        UserPrincipal userPrincipal =
+                (UserPrincipal) authentication.getPrincipal();
+
+        User user = userPrincipal.getUser();
+
+        Doctor doctor = doctorRepository.findByUserId(user.getId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Doctor profile not found"
+                        ));
 
         return doctorMapper.toResponse(doctor);
     }

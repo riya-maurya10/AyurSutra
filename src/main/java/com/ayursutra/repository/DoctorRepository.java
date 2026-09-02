@@ -9,5 +9,7 @@ public interface DoctorRepository extends MongoRepository<Doctor, String> {
 
     Optional<Doctor> findByEmail(String email);
 
+    Optional<Doctor> findByUserId(String userId);
+
     boolean existsByLicenseNumber(String licenseNumber);
 }

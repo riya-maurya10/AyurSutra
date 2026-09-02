@@ -159,6 +159,30 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F7F6F0] text-[#173D2D]">
 
+      {/* BACK TO HOME */}
+    <button
+      type="button"
+      onClick={() => navigate("/")}
+      className="
+        absolute
+        left-8
+        top-7
+        z-30
+        inline-flex
+        items-center
+        gap-2
+        text-sm
+        font-medium
+        text-white
+        transition
+        duration-200
+        hover:text-[#e8e4b0]
+      "
+    >
+      <span className="text-lg leading-none">←</span>
+      Back to Home
+    </button>
+
       <div className="grid min-h-screen lg:grid-cols-2">
 
         {/* ===================================================== */}
@@ -491,39 +515,47 @@ const RegisterPage: React.FC = () => {
               )}
 
 
-              {/* TERMS */}
+            {/* TERMS */}
 
-              <label className="flex cursor-pointer items-start gap-3 text-sm text-[#667168]">
+<label className="flex cursor-pointer items-start gap-3 text-sm text-[#667168]">
 
-                <input
-                  type="checkbox"
-                  checked={agree}
-                  onChange={(e) =>
-                    setAgree(e.target.checked)
-                  }
-                  disabled={loading}
-                  className="mt-1 h-4 w-4 accent-[#1F3D2E]"
-                />
+  <input
+    type="checkbox"
+    checked={agree}
+    onChange={(e) =>
+      setAgree(e.target.checked)
+    }
+    disabled={loading}
+    className="mt-1 h-4 w-4 accent-[#1F3D2E]"
+  />
 
-                <span className="leading-6">
+  <span className="leading-6">
+    I agree to the{" "}
 
-                  I agree to the{" "}
+    <button
+      type="button"
+      onClick={() => navigate("/terms")}
+      disabled={loading}
+      className="font-medium text-[#173D2D] underline underline-offset-2 hover:text-[#71834F]"
+    >
+      Terms of Service
+    </button>
 
-                  <span className="font-medium text-[#173D2D]">
-                    Terms of Service
-                  </span>
+    {" "}and{" "}
 
-                  {" "}and{" "}
+    <button
+      type="button"
+      onClick={() => navigate("/privacy")}
+      disabled={loading}
+      className="font-medium text-[#173D2D] underline underline-offset-2 hover:text-[#71834F]"
+    >
+      Privacy Policy
+    </button>
 
-                  <span className="font-medium text-[#173D2D]">
-                    Privacy Policy
-                  </span>
+    .
+  </span>
 
-                  .
-
-                </span>
-
-              </label>
+</label>
 
 
               {/* SUBMIT */}

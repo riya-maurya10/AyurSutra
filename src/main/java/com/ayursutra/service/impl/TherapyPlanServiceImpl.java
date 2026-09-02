@@ -2,11 +2,18 @@ package com.ayursutra.service.impl;
 
 import com.ayursutra.dto.request.TherapyPlanRequest;
 import com.ayursutra.dto.response.TherapyPlanResponse;
+import com.ayursutra.entity.Doctor;
+import com.ayursutra.entity.Patient;
 import com.ayursutra.entity.TherapyPlan;
 import com.ayursutra.mapper.TherapyPlanMapper;
+import com.ayursutra.repository.DoctorRepository;
+import com.ayursutra.repository.PatientRepository;
 import com.ayursutra.repository.TherapyPlanRepository;
+import com.ayursutra.security.UserPrincipal;
 import com.ayursutra.service.TherapyPlanService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +25,8 @@ public class TherapyPlanServiceImpl
 
     private final TherapyPlanRepository therapyPlanRepository;
     private final TherapyPlanMapper therapyPlanMapper;
+    private final PatientRepository patientRepository;
+    private final DoctorRepository doctorRepository;
 
     @Override
     public TherapyPlanResponse createPlan(
@@ -49,6 +58,85 @@ public class TherapyPlanServiceImpl
                 .toList();
     }
 
+    // =====================================================
+    // PATIENT - MY PLANS
+    // =====================================================
+
+    @Override
+    public List<TherapyPlanResponse> getMyPlans() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        UserPrincipal principal =
+                (UserPrincipal) authentication.getPrincipal();
+
+        String userId =
+                principal.getUser().getId();
+
+        Patient patient =
+                patientRepository.findByUserId(userId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Patient profile not found"
+                                )
+                        );
+
+        return therapyPlanRepository
+                .findByPatientId(patient.getId())
+                .stream()
+                .map(therapyPlanMapper::toResponse)
+                .toList();
+    }
+
+    // =====================================================
+    // DOCTOR - MY THERAPY PLANS
+    // =====================================================
+
+    @Override
+    public List<TherapyPlanResponse> getMyDoctorPlans() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !(authentication.getPrincipal()
+                        instanceof UserPrincipal)) {
+
+            throw new RuntimeException(
+                    "User not authenticated"
+            );
+        }
+
+        UserPrincipal principal =
+                (UserPrincipal) authentication.getPrincipal();
+
+        String userId =
+                principal.getUser().getId();
+
+        Doctor doctor =
+                doctorRepository.findByUserId(userId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Doctor profile not found"
+                                )
+                        );
+
+        return therapyPlanRepository
+                .findByDoctorId(doctor.getId())
+                .stream()
+                .map(therapyPlanMapper::toResponse)
+                .toList();
+    }
+
+    // =====================================================
+    // GET BY ID
+    // =====================================================
+
     @Override
     public TherapyPlanResponse getPlanById(
             String id) {
@@ -62,6 +150,10 @@ public class TherapyPlanServiceImpl
 
         return therapyPlanMapper.toResponse(plan);
     }
+
+    // =====================================================
+    // UPDATE
+    // =====================================================
 
     @Override
     public TherapyPlanResponse updatePlan(
@@ -83,20 +175,49 @@ public class TherapyPlanServiceImpl
                                         "Therapy plan not found"
                                 ));
 
-        plan.setPatientId(request.getPatientId());
-        plan.setDoctorId(request.getDoctorId());
-        plan.setPlanName(request.getPlanName());
-        plan.setDiagnosis(request.getDiagnosis());
-        plan.setStartDate(request.getStartDate());
-        plan.setEndDate(request.getEndDate());
-        plan.setStatus(request.getStatus());
-        plan.setTherapies(request.getTherapies());
+        plan.setPatientId(
+                request.getPatientId()
+        );
+
+        plan.setDoctorId(
+                request.getDoctorId()
+        );
+
+        plan.setPlanName(
+                request.getPlanName()
+        );
+
+        plan.setDiagnosis(
+                request.getDiagnosis()
+        );
+
+        plan.setStartDate(
+                request.getStartDate()
+        );
+
+        plan.setEndDate(
+                request.getEndDate()
+        );
+
+        plan.setStatus(
+                request.getStatus()
+        );
+
+        plan.setTherapies(
+                request.getTherapies()
+        );
 
         TherapyPlan updatedPlan =
                 therapyPlanRepository.save(plan);
 
-        return therapyPlanMapper.toResponse(updatedPlan);
+        return therapyPlanMapper.toResponse(
+                updatedPlan
+        );
     }
+
+    // =====================================================
+    // DELETE
+    // =====================================================
 
     @Override
     public void deletePlan(String id) {

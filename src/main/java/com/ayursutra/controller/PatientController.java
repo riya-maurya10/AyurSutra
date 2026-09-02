@@ -78,7 +78,7 @@ public class PatientController {
     @PostMapping("/me")
     @PreAuthorize("hasRole('PATIENT')")
     public ApiResponse<PatientResponse> createMyProfile(
-            @RequestBody UpdatePatientRequest request) {
+            @Valid @RequestBody UpdatePatientRequest request) {
 
         return new ApiResponse<>(
                 true,

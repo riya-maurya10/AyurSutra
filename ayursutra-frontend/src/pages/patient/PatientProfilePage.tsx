@@ -149,6 +149,7 @@ function PatientProfilePage() {
       setSaving(true);
 
       const payload = {
+        phone: profile.phone,
         age: profile.age,
         gender: profile.gender,
         address: profile.address,
@@ -216,7 +217,7 @@ function PatientProfilePage() {
 
       setError(
         err.response?.data?.message ||
-          "Unable to save your profile. Please try again."
+        "Unable to save your profile. Please try again."
       );
     } finally {
       setSaving(false);
@@ -239,30 +240,6 @@ function PatientProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#F8F6F0] text-[#1F3D2E]">
-
-      {/* Header */}
-      <header className="border-b border-[#DDD9C9] bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
-
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#71834F]">
-              AyurSutra
-            </p>
-
-            <h1 className="mt-1 text-2xl font-semibold">
-              My Profile
-            </h1>
-          </div>
-
-          <button
-            onClick={() => navigate("/patient")}
-            className="rounded-xl border border-[#D4D8CC] bg-white px-4 py-2.5 text-sm font-medium text-[#1F3D2E] transition hover:bg-[#EFF1E8]"
-          >
-            ← Dashboard
-          </button>
-
-        </div>
-      </header>
 
       {/* Main */}
       <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10">

@@ -14,6 +14,11 @@ public interface TherapyPlanService {
 
     TherapyPlanResponse getPlanById(String id);
 
+    List<TherapyPlanResponse> getMyPlans();
+
+    List<TherapyPlanResponse> getMyDoctorPlans();
+
+
     TherapyPlanResponse updatePlan(
             String id,
             TherapyPlanRequest request);

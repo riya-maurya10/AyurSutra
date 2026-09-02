@@ -13,6 +13,8 @@ public interface DoctorService {
 
     DoctorResponse getDoctorById(String id);
 
+    DoctorResponse getMyProfile();
+
     DoctorResponse updateDoctor(String id, DoctorRequest request);
 
     void deleteDoctor(String id);

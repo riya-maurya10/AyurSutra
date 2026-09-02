@@ -133,8 +133,8 @@ public class PatientServiceImpl implements PatientService {
         patient.setUserId(userId);
         patient.setFullName(principal.getUser().getFullName());
         patient.setEmail(principal.getUser().getEmail());
-        patient.setPhone(principal.getUser().getPhone());
-
+        //patient.setPhone(principal.getUser().getPhone());
+        patient.setPhone(request.getPhone());
         patient.setAge(request.getAge());
         patient.setGender(request.getGender());
         patient.setAddress(request.getAddress());

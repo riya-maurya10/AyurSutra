@@ -12,8 +12,11 @@ import {
   Settings,
   LogOut,
   X,
+  Leaf,
 } from "lucide-react";
+
 import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 interface SidebarProps {
   role: string;
@@ -28,6 +31,10 @@ interface MenuItem {
 }
 
 const menuItems: Record<string, MenuItem[]> = {
+  // =====================================================
+  // ADMIN
+  // =====================================================
+
   ADMIN: [
     {
       label: "Dashboard",
@@ -71,6 +78,10 @@ const menuItems: Record<string, MenuItem[]> = {
     },
   ],
 
+  // =====================================================
+  // DOCTOR
+  // =====================================================
+
   DOCTOR: [
     {
       label: "Dashboard",
@@ -92,12 +103,16 @@ const menuItems: Record<string, MenuItem[]> = {
       path: "/doctor/sessions",
       icon: CalendarDays,
     },
-    {
-      label: "Patient Progress",
-      path: "/doctor/progress",
-      icon: Activity,
-    },
+    // {
+    //   label: "Patient Progress",
+    //   path: "/doctor/progress",
+    //   icon: Activity,
+    // },
   ],
+
+  // =====================================================
+  // THERAPIST
+  // =====================================================
 
   THERAPIST: [
     {
@@ -121,6 +136,10 @@ const menuItems: Record<string, MenuItem[]> = {
       icon: ClipboardList,
     },
   ],
+
+  // =====================================================
+  // RECEPTIONIST
+  // =====================================================
 
   RECEPTIONIST: [
     {
@@ -155,6 +174,10 @@ const menuItems: Record<string, MenuItem[]> = {
     },
   ],
 
+  // =====================================================
+  // PATIENT
+  // =====================================================
+
   PATIENT: [
     {
       label: "Dashboard",
@@ -172,6 +195,11 @@ const menuItems: Record<string, MenuItem[]> = {
       icon: ClipboardList,
     },
     {
+      label: "My Diet Plan",
+      path: "/patient/diet-plan",
+      icon: Leaf,
+    },
+    {
       label: "My Sessions",
       path: "/patient/sessions",
       icon: CalendarDays,
@@ -184,6 +212,10 @@ const menuItems: Record<string, MenuItem[]> = {
   ],
 };
 
+// =====================================================
+// SIDEBAR COMPONENT
+// =====================================================
+
 function Sidebar({
   role,
   isOpen = true,
@@ -191,98 +223,266 @@ function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
 
-  const normalizedRole = role?.toUpperCase() || "";
+  const { logout } = useAuth();
 
-  const items = menuItems[normalizedRole] || [];
+  const normalizedRole =
+    role?.toUpperCase() || "";
+
+  const items =
+    menuItems[normalizedRole] || [];
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userFullName");
+    logout();
 
-    navigate("/login");
+    onClose?.();
+
+    navigate("/login", {
+      replace: true,
+    });
   };
+
+  // =====================================================
+  // ROLE HOME
+  // =====================================================
+
+  const getRoleHomePath = () => {
+    switch (normalizedRole) {
+      case "ADMIN":
+        return "/admin";
+
+      case "DOCTOR":
+        return "/doctor";
+
+      case "THERAPIST":
+        return "/therapist";
+
+      case "RECEPTIONIST":
+        return "/receptionist";
+
+      case "PATIENT":
+        return "/patient";
+
+      default:
+        return "/patient";
+    }
+  };
+
+  // =====================================================
+  // SETTINGS PATH
+  // =====================================================
+
+  const getSettingsPath = () => {
+    switch (normalizedRole) {
+      case "ADMIN":
+        return "/admin/settings";
+
+      case "DOCTOR":
+        return "/doctor/settings";
+
+      case "THERAPIST":
+        return "/therapist/settings";
+
+      case "RECEPTIONIST":
+        return "/receptionist/settings";
+
+      case "PATIENT":
+        return "/patient/settings";
+
+      default:
+        return "/patient/settings";
+    }
+  };
+
+  // =====================================================
+  // JSX
+  // =====================================================
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* ================================================= */}
+      {/* MOBILE OVERLAY */}
+      {/* ================================================= */}
+
       {isOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/30 lg:hidden"
+          className="
+            fixed inset-0 z-30
+            bg-black/30
+            lg:hidden
+          "
           onClick={onClose}
         />
       )}
+
+      {/* ================================================= */}
+      {/* SIDEBAR */}
+      {/* ================================================= */}
 
       <aside
         className={`
           fixed left-0 top-0 z-40
           flex h-screen w-72 flex-col
-          border-r border-[#D9DDCE]
-          bg-[#F8F6F0]
+          border-r border-white/10
+          bg-[#173D2D]
           transition-transform duration-300
-          lg:static lg:z-auto lg:translate-x-0
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+
+          lg:translate-x-0
+          lg:z-40
+
+          ${
+            isOpen
+              ? "translate-x-0"
+              : "-translate-x-full"
+          }
         `}
       >
-        {/* Brand */}
-        <div className="flex h-20 items-center justify-between border-b border-[#D9DDCE] px-6">
+
+        {/* ================================================= */}
+        {/* BRAND */}
+        {/* ================================================= */}
+
+        <div
+          className="
+            flex h-20
+            items-center
+            justify-between
+            border-b border-white/10
+            px-6
+          "
+        >
+
           <button
             type="button"
-            onClick={() => navigate(
-              normalizedRole === "ADMIN"
-                ? "/admin"
-                : normalizedRole === "DOCTOR"
-                ? "/doctor"
-                : normalizedRole === "THERAPIST"
-                ? "/therapist"
-                : normalizedRole === "RECEPTIONIST"
-                ? "/receptionist"
-                : "/patient"
-            )}
+            onClick={() =>
+              navigate(getRoleHomePath())
+            }
             className="text-left"
           >
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-[#71834F]">
+
+            <p
+              className="
+                text-xs
+                font-medium
+                uppercase
+                tracking-[0.25em]
+                text-[#DDE5D6]
+              "
+            >
               AyurSutra
             </p>
 
-            <p className="mt-1 text-lg font-semibold text-[#1F3D2E]">
+            <p
+              className="
+                mt-1
+                text-lg
+                font-semibold
+                text-white
+              "
+            >
               Wellness Care
             </p>
+
           </button>
 
-          {/* Mobile close */}
+          {/* MOBILE CLOSE */}
+
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-[#5A4A3A] hover:bg-white lg:hidden"
+            className="
+              rounded-lg
+              p-2
+              text-[#DDE5D6]
+              transition
+              hover:bg-white/10
+              hover:text-white
+              lg:hidden
+            "
             aria-label="Close sidebar"
           >
             <X size={20} />
           </button>
+
         </div>
 
-        {/* Role */}
+        {/* ================================================= */}
+        {/* CURRENT ROLE */}
+        {/* ================================================= */}
+
         <div className="px-6 py-5">
-          <div className="rounded-2xl border border-[#D9DDCE] bg-white px-4 py-3">
-            <p className="text-xs uppercase tracking-wider text-[#71834F]">
+
+          <div
+            className="
+              rounded-2xl
+              border border-white/10
+              bg-white/10
+              px-4
+              py-3
+              backdrop-blur-sm
+            "
+          >
+
+            <p
+              className="
+                text-xs
+                uppercase
+                tracking-wider
+                text-[#DDE5D6]
+              "
+            >
               Current Role
             </p>
 
-            <p className="mt-1 text-sm font-semibold text-[#1F3D2E]">
+            <p
+              className="
+                mt-1
+                text-sm
+                font-semibold
+                text-white
+              "
+            >
               {normalizedRole}
             </p>
+
           </div>
+
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-4 pb-6">
-          <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#8A927B]">
+        {/* ================================================= */}
+        {/* NAVIGATION */}
+        {/* ================================================= */}
+
+        <nav
+          className="
+            flex-1
+            overflow-y-auto
+            px-4
+            pb-6
+          "
+        >
+
+          <p
+            className="
+              mb-3
+              px-3
+              text-xs
+              font-semibold
+              uppercase
+              tracking-[0.18em]
+              text-[#AEBEAA]
+            "
+          >
             Navigation
           </p>
 
           <div className="space-y-1">
+
             {items.map((item) => {
+
               const Icon = item.icon;
 
               return (
@@ -290,62 +490,126 @@ function Sidebar({
                   key={item.path}
                   to={item.path}
                   onClick={onClose}
-                  end={item.path === `/${normalizedRole.toLowerCase()}`}
+                  end={
+                    item.path ===
+                    `/${normalizedRole.toLowerCase()}`
+                  }
                   className={({ isActive }) =>
                     `
-                    group flex items-center gap-3 rounded-xl
-                    px-3 py-3 text-sm font-medium
-                    transition-all duration-200
+                    group
+                    flex
+                    items-center
+                    gap-3
+                    rounded-xl
+                    px-3
+                    py-3
+                    text-sm
+                    font-medium
+                    transition-all
+                    duration-200
+
                     ${
                       isActive
-                        ? "bg-[#1F3D2E] text-white shadow-sm"
-                        : "text-[#4D5C4B] hover:bg-white hover:text-[#1F3D2E]"
+                        ? "bg-[#DDE5D6] text-[#173D2D] shadow-sm"
+                        : "text-[#DDE5D6] hover:bg-white/10 hover:text-white"
                     }
                     `
                   }
                 >
+
                   <Icon size={19} />
 
-                  <span>{item.label}</span>
+                  <span>
+                    {item.label}
+                  </span>
+
                 </NavLink>
               );
+
             })}
+
           </div>
+
         </nav>
 
-        {/* Bottom section */}
-        <div className="border-t border-[#D9DDCE] p-4">
+        {/* ================================================= */}
+        {/* BOTTOM SECTION */}
+        {/* ================================================= */}
+
+        <div
+          className="
+            border-t
+            border-white/10
+            p-4
+          "
+        >
+
+          {/* SETTINGS */}
+
           <button
             type="button"
             onClick={() => {
-              navigate(
-                normalizedRole === "ADMIN"
-                  ? "/admin/settings"
-                  : normalizedRole === "DOCTOR"
-                  ? "/doctor/settings"
-                  : normalizedRole === "THERAPIST"
-                  ? "/therapist/settings"
-                  : normalizedRole === "RECEPTIONIST"
-                  ? "/receptionist/settings"
-                  : "/patient/settings"
-              );
+              navigate(getSettingsPath());
               onClose?.();
             }}
-            className="mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-[#4D5C4B] transition hover:bg-white hover:text-[#1F3D2E]"
+            className="
+              mb-2
+              flex
+              w-full
+              items-center
+              gap-3
+              rounded-xl
+              px-3
+              py-3
+              text-sm
+              font-medium
+              text-[#DDE5D6]
+              transition
+              hover:bg-white/10
+              hover:text-white
+            "
           >
+
             <Settings size={19} />
-            <span>Settings</span>
+
+            <span>
+              Settings
+            </span>
+
           </button>
+
+          {/* LOGOUT */}
 
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-[#8B4A42] transition hover:bg-[#F5E9E7]"
+            className="
+              flex
+              w-full
+              items-center
+              gap-3
+              rounded-xl
+              px-3
+              py-3
+              text-sm
+              font-medium
+              text-[#E8A49B]
+              transition
+              hover:bg-[#8B4A42]/20
+              hover:text-[#F2B8B0]
+            "
           >
+
             <LogOut size={19} />
-            <span>Logout</span>
+
+            <span>
+              Logout
+            </span>
+
           </button>
+
         </div>
+
       </aside>
     </>
   );

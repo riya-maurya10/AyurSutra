@@ -9,6 +9,7 @@ import com.ayursutra.service.DoctorService;
 import com.ayursutra.util.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -65,6 +66,22 @@ public class DoctorController {
                 true,
                 "Doctors fetched successfully",
                 doctorService.getAllDoctors()
+        );
+    }
+
+
+    // =========================
+    // GET MY PROFILE
+    // =========================
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ApiResponse<DoctorResponse> getMyProfile() {
+
+        return new ApiResponse<>(
+                true,
+                "Doctor profile fetched successfully",
+                doctorService.getMyProfile()
         );
     }
 

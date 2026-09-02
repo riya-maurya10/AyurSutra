@@ -1,14 +1,12 @@
 package com.ayursutra.controller;
 
-import com.ayursutra.constant.AuditAction;
-import com.ayursutra.dto.request.AuditLogRequest;
 import com.ayursutra.dto.request.TherapyPlanRequest;
 import com.ayursutra.dto.response.TherapyPlanResponse;
-import com.ayursutra.service.AuditService;
 import com.ayursutra.service.TherapyPlanService;
 import com.ayursutra.util.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,47 +18,27 @@ public class TherapyPlanController {
 
     private final TherapyPlanService therapyPlanService;
 
-    private final AuditService auditService;
-
-
-    // =========================
-    // CREATE THERAPY PLAN
-    // =========================
+    // =====================================================
+    // CREATE
+    // =====================================================
 
     @PostMapping
     public ApiResponse<TherapyPlanResponse> createPlan(
             @Valid @RequestBody TherapyPlanRequest request) {
 
-        TherapyPlanResponse plan =
-                therapyPlanService.createPlan(request);
-
-        AuditLogRequest audit =
-                new AuditLogRequest();
-
-        audit.setAction(AuditAction.CREATE);
-        audit.setEntityType("THERAPY_PLAN");
-        audit.setEntityId(plan.getId());
-        audit.setDescription(
-                "Therapy plan created"
-        );
-
-        auditService.createAuditLog(audit);
-
         return new ApiResponse<>(
                 true,
                 "Therapy plan created successfully",
-                plan
+                therapyPlanService.createPlan(request)
         );
     }
 
-
-    // =========================
-    // GET ALL THERAPY PLANS
-    // =========================
+    // =====================================================
+    // GET ALL
+    // =====================================================
 
     @GetMapping
-    public ApiResponse<List<TherapyPlanResponse>>
-    getAllPlans() {
+    public ApiResponse<List<TherapyPlanResponse>> getAllPlans() {
 
         return new ApiResponse<>(
                 true,
@@ -69,10 +47,39 @@ public class TherapyPlanController {
         );
     }
 
+    // =====================================================
+    // PATIENT - MY PLANS
+    // =====================================================
 
-    // =========================
-    // GET THERAPY PLAN BY ID
-    // =========================
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ApiResponse<List<TherapyPlanResponse>> getMyPlans() {
+
+        return new ApiResponse<>(
+                true,
+                "Therapy plans fetched successfully",
+                therapyPlanService.getMyPlans()
+        );
+    }
+
+    // =====================================================
+    // DOCTOR - MY PLANS
+    // =====================================================
+
+    @GetMapping("/doctor/my")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ApiResponse<List<TherapyPlanResponse>> getMyDoctorPlans() {
+
+        return new ApiResponse<>(
+                true,
+                "Doctor therapy plans fetched successfully",
+                therapyPlanService.getMyDoctorPlans()
+        );
+    }
+
+    // =====================================================
+    // GET BY ID
+    // =====================================================
 
     @GetMapping("/{id}")
     public ApiResponse<TherapyPlanResponse> getPlanById(
@@ -85,63 +92,34 @@ public class TherapyPlanController {
         );
     }
 
-
-    // =========================
-    // UPDATE THERAPY PLAN
-    // =========================
+    // =====================================================
+    // UPDATE
+    // =====================================================
 
     @PutMapping("/{id}")
     public ApiResponse<TherapyPlanResponse> updatePlan(
             @PathVariable String id,
             @Valid @RequestBody TherapyPlanRequest request) {
 
-        TherapyPlanResponse plan =
-                therapyPlanService.updatePlan(
-                        id,
-                        request
-                );
-
-        AuditLogRequest audit =
-                new AuditLogRequest();
-
-        audit.setAction(AuditAction.UPDATE);
-        audit.setEntityType("THERAPY_PLAN");
-        audit.setEntityId(plan.getId());
-        audit.setDescription(
-                "Therapy plan updated"
-        );
-
-        auditService.createAuditLog(audit);
-
         return new ApiResponse<>(
                 true,
                 "Therapy plan updated successfully",
-                plan
+                therapyPlanService.updatePlan(
+                        id,
+                        request
+                )
         );
     }
 
-
-    // =========================
-    // DELETE THERAPY PLAN
-    // =========================
+    // =====================================================
+    // DELETE
+    // =====================================================
 
     @DeleteMapping("/{id}")
     public ApiResponse<String> deletePlan(
             @PathVariable String id) {
 
         therapyPlanService.deletePlan(id);
-
-        AuditLogRequest audit =
-                new AuditLogRequest();
-
-        audit.setAction(AuditAction.DELETE);
-        audit.setEntityType("THERAPY_PLAN");
-        audit.setEntityId(id);
-        audit.setDescription(
-                "Therapy plan deleted"
-        );
-
-        auditService.createAuditLog(audit);
 
         return new ApiResponse<>(
                 true,
