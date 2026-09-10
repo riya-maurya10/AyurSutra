@@ -3,12 +3,14 @@ package com.ayursutra.controller;
 import com.ayursutra.constant.AuditAction;
 import com.ayursutra.dto.request.AuditLogRequest;
 import com.ayursutra.dto.request.TherapistRequest;
+import com.ayursutra.dto.response.PatientResponse;
 import com.ayursutra.dto.response.TherapistResponse;
 import com.ayursutra.service.AuditService;
 import com.ayursutra.service.TherapistService;
 import com.ayursutra.util.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -71,6 +73,22 @@ public class TherapistController {
 
 
     // =========================
+    // GET MY PROFILE
+    // =========================
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('THERAPIST')")
+    public ApiResponse<TherapistResponse> getMyProfile() {
+
+        return new ApiResponse<>(
+                true,
+                "Therapist profile fetched successfully",
+                therapistService.getMyProfile()
+        );
+    }
+
+
+    // =========================
     // GET BY ID
     // =========================
 
@@ -91,6 +109,7 @@ public class TherapistController {
     // =========================
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'THERAPIST')")
     public ApiResponse<TherapistResponse> updateTherapist(
             @PathVariable String id,
             @Valid @RequestBody TherapistRequest request) {
@@ -147,6 +166,22 @@ public class TherapistController {
                 true,
                 "Therapist deleted successfully",
                 null
+        );
+    }
+
+
+    // =========================
+    // GET MY ASSIGNED PATIENTS
+    // =========================
+
+    @GetMapping("/me/patients")
+    @PreAuthorize("hasRole('THERAPIST')")
+    public ApiResponse<List<PatientResponse>> getMyPatients() {
+
+        return new ApiResponse<>(
+                true,
+                "Assigned patients fetched successfully",
+                therapistService.getMyPatients()
         );
     }
 }

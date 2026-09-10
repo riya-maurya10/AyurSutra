@@ -6,7 +6,10 @@ import com.ayursutra.service.UserService;
 import com.ayursutra.util.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -37,4 +40,13 @@ public class UserController {
         );
     }
 
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<List<UserResponse>> getAllUsers() {
+        return new ApiResponse<>(
+                true,
+                "Users fetched successfully",
+                userService.getAllUsers()
+        );
+    }
 }

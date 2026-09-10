@@ -137,37 +137,37 @@ function Topbar({
     <header className="relative z-50 flex h-20 items-center justify-between border-b border-[#D9DDCE] bg-white px-5 lg:px-8">
 
       {/* ===================================================
-          LEFT
-      =================================================== */}
+    LEFT
+=================================================== */}
 
-      <div className="flex items-center gap-4">
+<div className="flex items-center gap-4">
 
-        {/* Mobile menu */}
+  {/* Mobile menu */}
 
-        <button
-          type="button"
-          onClick={onMenuClick}
-          className="rounded-xl p-2 text-[#4D5C4B] transition hover:bg-[#F8F6F0] lg:hidden"
-          aria-label="Open menu"
-        >
-          <Menu size={22} />
-        </button>
+  <button
+    type="button"
+    onClick={onMenuClick}
+    className="rounded-xl p-2 text-[#4D5C4B] transition hover:bg-[#F8F6F0] lg:hidden"
+    aria-label="Open menu"
+  >
+    <Menu size={22} />
+  </button>
 
-        <div>
+  <div>
 
-          <h1 className="text-xl font-semibold text-[#1F3D2E] md:text-2xl">
-            {title}
-          </h1>
+    <h1 className="text-lg font-semibold tracking-tight text-[#1F3D2E] md:text-xl">
+      {title}
+    </h1>
 
-          {subtitle && (
-            <p className="mt-1 hidden text-sm text-[#7A806F] sm:block">
-              {subtitle}
-            </p>
-          )}
+    {subtitle && (
+      <p className="mt-0.5 hidden text-xs text-[#7A806F] sm:block">
+        {subtitle}
+      </p>
+    )}
 
-        </div>
+  </div>
 
-      </div>
+</div>
 
       {/* ===================================================
           RIGHT

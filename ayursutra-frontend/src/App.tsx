@@ -39,6 +39,12 @@ import DoctorTherapySessionsPage from "./pages/doctor/DoctorTherapySessionsPage"
 // =====================================================
 
 import TherapistDashboard from "./pages/therapist/TherapistDashboard";
+import TherapistLayout from "./layouts/TherapistLayout";
+import AssignedPatientsPage from "./pages/therapist/AssignedPatientsPage";
+import TherapistPatientDetailsPage from "./pages/therapist/TherapistPatientDetailsPage";
+import TherapistSessionsPage from "./pages/therapist/TherapistSessionsPage";
+import TherapistSessionHistoryPage from "./pages/therapist/TherapistSessionHistoryPage";
+import TherapistProfilePage from "./pages/therapist/TherapistProfilePage";
 
 // =====================================================
 // RECEPTIONIST
@@ -189,20 +195,41 @@ function App() {
       </Route>
 
       {/* =====================================================
-          THERAPIST
-          ===================================================== */}
+    THERAPIST
+    ===================================================== */}
 
-      <Route
-        element={
-          <ProtectedRoute
-            allowedRoles={["THERAPIST"]}
-          />
-        }
-      >
+      <Route element={<TherapistLayout />}>
+
         <Route
           path="/therapist"
           element={<TherapistDashboard />}
         />
+
+        <Route
+          path="/therapist/patients"
+          element={<AssignedPatientsPage />}
+        />
+
+        <Route
+          path="/therapist/patients/:id"
+          element={<TherapistPatientDetailsPage />}
+        />
+
+        <Route
+          path="/therapist/sessions"
+          element={<TherapistSessionsPage />}
+        />
+
+        <Route
+          path="/therapist/history"
+          element={<TherapistSessionHistoryPage />}
+        />
+
+        <Route
+          path="/therapist/profile"
+          element={<TherapistProfilePage />}
+        />
+
       </Route>
 
       {/* =====================================================

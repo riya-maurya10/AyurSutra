@@ -11,6 +11,8 @@ public interface TherapistRepository
 
     Optional<Therapist> findByEmail(String email);
 
+    Optional<Therapist> findByUserId(String userId);
+
     boolean existsByEmail(String email);
 
     List<Therapist> findBySpecializationAndAvailableTrue(

@@ -6,9 +6,10 @@ import com.ayursutra.entity.User;
 import com.ayursutra.mapper.UserMapper;
 import com.ayursutra.repository.UserRepository;
 import com.ayursutra.service.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -29,11 +30,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse register(RegisterUserRequest request) {
 
-        if(userRepository.existsByEmail(request.getEmail())){
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists");
         }
 
-        User user=new User();
+        User user = new User();
 
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
@@ -45,7 +46,14 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         return UserMapper.toResponse(user);
-
     }
 
+    @Override
+    public List<UserResponse> getAllUsers() {
+
+        return userRepository.findAll()
+                .stream()
+                .map(UserMapper::toResponse)
+                .toList();
+    }
 }
