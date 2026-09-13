@@ -15,13 +15,11 @@ import com.ayursutra.entity.TherapyDependency;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.Optional;
-
 import java.time.LocalTime;
 import java.util.List;
 
 import com.ayursutra.constant.RoomType;
 import com.ayursutra.entity.Room;
-import com.ayursutra.repository.RoomRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -110,12 +108,14 @@ public class SchedulingServiceImpl
             );
         }
 
+
         // -------------------------------------------------
-// 5. Validate Therapy Dependencies
-// -------------------------------------------------
+        // 5. Validate Therapy Dependencies
+        // -------------------------------------------------
 
         validateTherapyDependencies(
                 therapy.getId(),
+                therapy.getName(),
                 therapyPlan.getId(),
                 request.getSessionDate(),
                 request.getStartTime()
@@ -148,8 +148,8 @@ public class SchedulingServiceImpl
 
 
         // -------------------------------------------------
-// 8. Validate / Automatically Allocate Therapist
-// -------------------------------------------------
+        // 8. Validate / Automatically Allocate Therapist
+        // -------------------------------------------------
 
         String therapistId = request.getTherapistId();
         String roomId = request.getRoomId();
@@ -212,6 +212,11 @@ public class SchedulingServiceImpl
                 throw new BadRequestException(
                         "No available therapist found for therapy: "
                                 + therapy.getName()
+                                + " on "
+                                + request.getSessionDate()
+                                + " at "
+                                + request.getStartTime()
+                                + ". Please choose another therapist or time."
                 );
             }
 
@@ -219,9 +224,9 @@ public class SchedulingServiceImpl
         }
 
 
-// -------------------------------------------------
-// Validate manually selected therapist
-// -------------------------------------------------
+        // -------------------------------------------------
+        // 9. Validate manually selected therapist
+        // -------------------------------------------------
 
         else {
 
@@ -255,16 +260,52 @@ public class SchedulingServiceImpl
 
             if (therapistConflict) {
 
+                TherapySessionResponse conflictingSession =
+                        therapistSessions.stream()
+                                .filter(session -> {
+
+                                    if (session.getSessionDate() == null ||
+                                            session.getStartTime() == null ||
+                                            session.getEndTime() == null) {
+
+                                        return false;
+                                    }
+
+                                    if (!session.getSessionDate()
+                                            .equals(request.getSessionDate())) {
+
+                                        return false;
+                                    }
+
+                                    return session.getStartTime().isBefore(endTime)
+                                            && session.getEndTime()
+                                            .isAfter(request.getStartTime());
+                                })
+                                .findFirst()
+                                .orElse(null);
+
                 throw new BadRequestException(
-                        "Therapist is already assigned to another session during this time"
+                        conflictingSession != null
+                                ? "Therapist scheduling conflict: "
+                                + "The selected therapist is already assigned to "
+                                + conflictingSession.getTherapyName()
+                                + " on "
+                                + conflictingSession.getSessionDate()
+                                + " from "
+                                + conflictingSession.getStartTime()
+                                + " to "
+                                + conflictingSession.getEndTime()
+                                + ". Please choose another therapist or time."
+                                : "Therapist scheduling conflict: "
+                                + "The selected therapist is already assigned to another session during this time."
                 );
             }
         }
 
 
         // -------------------------------------------------
-// 10. Automatically Allocate Room
-// -------------------------------------------------
+        // 10. Automatically Allocate Room
+        // -------------------------------------------------
 
         if (roomId == null || roomId.isBlank()) {
 
@@ -359,6 +400,8 @@ public class SchedulingServiceImpl
                 throw new BadRequestException(
                         "No room available for "
                                 + therapy.getName()
+                                + " on "
+                                + request.getSessionDate()
                                 + " at "
                                 + request.getStartTime()
                                 + ". All suitable rooms are occupied or at full capacity."
@@ -377,8 +420,8 @@ public class SchedulingServiceImpl
 
 
         // -------------------------------------------------
-// 11. Validate Manually Selected Room Capacity
-// -------------------------------------------------
+        // 11. Validate Manually Selected Room Capacity
+        // -------------------------------------------------
 
         if (request.getRoomId() != null &&
                 !request.getRoomId().isBlank()) {
@@ -448,15 +491,21 @@ public class SchedulingServiceImpl
                                 + selectedRoom.getRoomNumber()
                                 + " is already at full capacity ("
                                 + selectedRoom.getCapacity()
-                                + ") during this time"
+                                + ") on "
+                                + request.getSessionDate()
+                                + " from "
+                                + request.getStartTime()
+                                + " to "
+                                + endTime
+                                + ". Please choose another room or time."
                 );
             }
         }
 
 
         // -------------------------------------------------
-// Validate Patient Time Overlap
-// -------------------------------------------------
+        // 12. Validate Patient Time Overlap
+        // -------------------------------------------------
 
         List<TherapySessionResponse> patientSessions =
                 therapySessionService
@@ -514,14 +563,77 @@ public class SchedulingServiceImpl
                         });
 
         if (patientTimeConflict) {
-            throw new BadRequestException(
-                    "Patient already has another therapy session during this time"
-            );
+
+            TherapySessionResponse conflictingSession =
+                    patientSessions.stream()
+                            .filter(session -> {
+
+                                if (session.getSessionDate() == null ||
+                                        session.getStartTime() == null ||
+                                        session.getEndTime() == null) {
+
+                                    return false;
+                                }
+
+                                LocalDateTime existingStart =
+                                        LocalDateTime.of(
+                                                session.getSessionDate(),
+                                                session.getStartTime()
+                                        );
+
+                                LocalDateTime existingEnd =
+                                        LocalDateTime.of(
+                                                session.getSessionDate(),
+                                                session.getEndTime()
+                                        );
+
+                                if (!existingEnd.isAfter(existingStart)) {
+                                    existingEnd = existingEnd.plusDays(1);
+                                }
+
+                                LocalDateTime newStart =
+                                        LocalDateTime.of(
+                                                request.getSessionDate(),
+                                                request.getStartTime()
+                                        );
+
+                                LocalDateTime newEnd =
+                                        LocalDateTime.of(
+                                                request.getSessionDate(),
+                                                endTime
+                                        );
+
+                                if (!newEnd.isAfter(newStart)) {
+                                    newEnd = newEnd.plusDays(1);
+                                }
+
+                                return existingStart.isBefore(newEnd)
+                                        && existingEnd.isAfter(newStart);
+                            })
+                            .findFirst()
+                            .orElse(null);
+
+            String conflictMessage =
+                    conflictingSession != null
+                            ? "Patient scheduling conflict: "
+                            + "The patient already has "
+                            + conflictingSession.getTherapyName()
+                            + " scheduled on "
+                            + conflictingSession.getSessionDate()
+                            + " from "
+                            + conflictingSession.getStartTime()
+                            + " to "
+                            + conflictingSession.getEndTime()
+                            + ". Please choose a different time."
+                            : "Patient scheduling conflict: "
+                            + "The patient already has another therapy session during this time.";
+
+            throw new BadRequestException(conflictMessage);
         }
 
 
         // -------------------------------------------------
-        // 9. Determine Day Number
+        // 13. Determine Day Number
         // -------------------------------------------------
 
         int dayNumber = 1;
@@ -541,7 +653,7 @@ public class SchedulingServiceImpl
 
 
         // -------------------------------------------------
-        // 10. Determine Sequence Order
+        // 14. Determine Sequence Order
         // -------------------------------------------------
 
         List<TherapySessionResponse> existingSessions =
@@ -556,7 +668,7 @@ public class SchedulingServiceImpl
 
 
         // -------------------------------------------------
-        // 11. Build Therapy Session Request
+        // 15. Build Therapy Session Request
         // -------------------------------------------------
 
         TherapySessionRequest sessionRequest =
@@ -616,7 +728,7 @@ public class SchedulingServiceImpl
 
 
         // -------------------------------------------------
-        // 12. Create Session Using Existing Service
+        // 16. Create Session Using Existing Service
         // -------------------------------------------------
 
         TherapySessionResponse savedSession =
@@ -625,7 +737,7 @@ public class SchedulingServiceImpl
 
 
         // -------------------------------------------------
-        // 13. Return Scheduling Result
+        // 17. Return Scheduling Result
         // -------------------------------------------------
 
         return new SchedulingResponse(
@@ -635,17 +747,24 @@ public class SchedulingServiceImpl
         );
     }
 
+
     private void validateTherapyDependencies(
             String therapyId,
+            String therapyName,
             String therapyPlanId,
             java.time.LocalDate sessionDate,
             LocalTime startTime) {
 
-        System.out.println("========== DEPENDENCY VALIDATION CALLED ==========");
+        System.out.println(
+                "========== DEPENDENCY VALIDATION CALLED =========="
+        );
+
         System.out.println("therapyId = " + therapyId);
+        System.out.println("therapyName = " + therapyName);
         System.out.println("therapyPlanId = " + therapyPlanId);
         System.out.println("sessionDate = " + sessionDate);
         System.out.println("startTime = " + startTime);
+
 
         // =================================================
         // 1. Get active dependencies
@@ -655,13 +774,20 @@ public class SchedulingServiceImpl
                 therapyDependencyRepository
                         .findByTherapyIdAndActiveTrue(therapyId);
 
-        System.out.println("========== DEPENDENCIES ==========");
-        System.out.println("Dependency count = " + dependencies.size());
+        System.out.println(
+                "========== DEPENDENCIES =========="
+        );
+
+        System.out.println(
+                "Dependency count = "
+                        + dependencies.size()
+        );
 
         for (TherapyDependency dependency : dependencies) {
 
             System.out.println(
-                    "TYPE = " + dependency.getDependencyType()
+                    "TYPE = "
+                            + dependency.getDependencyType()
                             + " | RELATED THERAPY ID = "
                             + dependency.getRelatedTherapyId()
                             + " | DESCRIPTION = "
@@ -669,40 +795,67 @@ public class SchedulingServiceImpl
             );
         }
 
+
         // =================================================
         // 2. Get existing sessions
         // =================================================
 
         List<TherapySessionResponse> existingSessions =
                 therapySessionService
-                        .getSessionsByTherapyPlan(therapyPlanId);
+                        .getSessionsByTherapyPlan(
+                                therapyPlanId
+                        );
 
-        System.out.println("========== EXISTING SESSIONS ==========");
-        System.out.println("Session count = " + existingSessions.size());
+        System.out.println(
+                "========== EXISTING SESSIONS =========="
+        );
 
-        for (TherapySessionResponse session : existingSessions) {
+        System.out.println(
+                "Session count = "
+                        + existingSessions.size()
+        );
+
+        for (TherapySessionResponse session :
+                existingSessions) {
 
             System.out.println(
-                    "THERAPY = " + session.getTherapyName()
-                            + " | ID = " + session.getTherapyId()
-                            + " | DATE = " + session.getSessionDate()
-                            + " | START = " + session.getStartTime()
-                            + " | END = " + session.getEndTime()
+                    "THERAPY = "
+                            + session.getTherapyName()
+                            + " | ID = "
+                            + session.getTherapyId()
+                            + " | DATE = "
+                            + session.getSessionDate()
+                            + " | START = "
+                            + session.getStartTime()
+                            + " | END = "
+                            + session.getEndTime()
             );
         }
+
 
         // =================================================
         // 3. Validate dependencies
         // =================================================
 
-        for (TherapyDependency dependency : dependencies) {
+        for (TherapyDependency dependency :
+                dependencies) {
 
             if (dependency.getDependencyType() == null) {
                 continue;
             }
 
+
             String relatedTherapyId =
                     dependency.getRelatedTherapyId();
+
+            String relatedTherapyName =
+                    therapyRepository
+                            .findById(relatedTherapyId)
+                            .map(Therapy::getName)
+                            .orElse(
+                                    "the prerequisite therapy"
+                            );
+
 
             // =================================================
             // BEFORE
@@ -710,7 +863,6 @@ public class SchedulingServiceImpl
             // Example:
             // Swedana BEFORE Vamana
             //
-            // IMPORTANT:
             // Required therapy MUST be on the SAME DAY
             // and MUST start before the current therapy.
             // =================================================
@@ -756,12 +908,15 @@ public class SchedulingServiceImpl
                 if (!relatedTherapyFoundBefore) {
 
                     throw new BadRequestException(
-                            "Therapy requires prerequisite therapy "
-                                    + relatedTherapyId
-                                    + " to be scheduled earlier on the same day"
+                            therapyName
+                                    + " requires "
+                                    + relatedTherapyName
+                                    + " to be scheduled earlier "
+                                    + "on the same day."
                     );
                 }
             }
+
 
             // =================================================
             // REQUIRES
@@ -822,20 +977,26 @@ public class SchedulingServiceImpl
                 if (!requiredTherapyFound) {
 
                     throw new BadRequestException(
-                            "Therapy requires prerequisite therapy "
-                                    + relatedTherapyId
-                                    + " to be scheduled before it"
+                            therapyName
+                                    + " requires "
+                                    + relatedTherapyName
+                                    + " to be completed "
+                                    + "before it can be scheduled."
                     );
                 }
             }
 
-// MIN_GAP
-//
-// Example:
-// Vamana MIN_GAP Abhyanga = 15 minutes
-//
-// The latest related therapy session must be completed
-// before the current therapy with at least the required gap.
+
+            // =================================================
+            // MIN_GAP
+            //
+            // Example:
+            // Vamana MIN_GAP Abhyanga = 15 minutes
+            //
+            // The latest related therapy session must be
+            // completed before the current therapy with
+            // at least the required gap.
+            // =================================================
 
             if (dependency.getDependencyType()
                     == TherapyDependency.DependencyType.MIN_GAP) {
@@ -845,25 +1006,34 @@ public class SchedulingServiceImpl
                                 ? dependency.getMinimumGapMinutes()
                                 : 0;
 
+
                 // Find the latest related therapy session
+
                 Optional<TherapySessionResponse> latestRelatedSession =
                         existingSessions.stream()
                                 .filter(session ->
                                         relatedTherapyId.equals(
-                                                session.getTherapyId()))
+                                                session.getTherapyId()
+                                        )
+                                )
                                 .filter(session ->
                                         session.getSessionDate() != null
-                                                && session.getEndTime() != null)
+                                                && session.getEndTime() != null
+                                )
                                 .filter(session ->
                                         !session.getSessionDate()
-                                                .isAfter(sessionDate))
+                                                .isAfter(sessionDate)
+                                )
                                 .max(
                                         Comparator
                                                 .comparing(
-                                                        TherapySessionResponse::getSessionDate)
+                                                        TherapySessionResponse::getSessionDate
+                                                )
                                                 .thenComparing(
-                                                        TherapySessionResponse::getEndTime)
+                                                        TherapySessionResponse::getEndTime
+                                                )
                                 );
+
 
                 boolean minimumGapSatisfied = false;
 
@@ -912,6 +1082,7 @@ public class SchedulingServiceImpl
                     );
                 }
 
+
                 System.out.println(
                         "MIN_GAP dependency satisfied = "
                                 + minimumGapSatisfied
@@ -920,17 +1091,21 @@ public class SchedulingServiceImpl
                                 + " minutes"
                 );
 
+
                 if (!minimumGapSatisfied) {
 
                     throw new BadRequestException(
-                            "Therapy requires at least "
+                            therapyName
+                                    + " must be scheduled at least "
                                     + minimumGap
-                                    + " minutes gap after prerequisite therapy "
-                                    + relatedTherapyId
+                                    + " minutes after "
+                                    + relatedTherapyName
+                                    + " ends."
                     );
                 }
             }
         }
+
 
         System.out.println(
                 "========== DEPENDENCY VALIDATION PASSED =========="

@@ -6,8 +6,10 @@ import {
   HeartPulse,
   Sparkles,
   BedDouble,
+  CalendarClock,
   CalendarDays,
   ClipboardList,
+  Package,
   Activity,
   Settings,
   LogOut,
@@ -131,6 +133,11 @@ const menuItems: Record<string, MenuItem[]> = {
       icon: CalendarDays,
     },
     {
+  label: "Upcoming Sessions",
+  path: "/therapist/upcoming",
+  icon: CalendarClock,
+},
+    {
       label: "Session History",
       path: "/therapist/history",
       icon: ClipboardList,
@@ -162,9 +169,14 @@ const menuItems: Record<string, MenuItem[]> = {
       path: "/receptionist/rooms",
       icon: BedDouble,
     },
+    { 
+      label: "Equipment", 
+      path: "/receptionist/equipment", 
+      icon: Package 
+    },
     {
-      label: "Schedules",
-      path: "/receptionist/schedules",
+      label: "Scheduler",
+      path: "/receptionist/scheduler",
       icon: CalendarDays,
     },
     {
@@ -333,10 +345,9 @@ function Sidebar({
           lg:translate-x-0
           lg:z-40
 
-          ${
-            isOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
+          ${isOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
           }
         `}
       >
@@ -508,10 +519,9 @@ function Sidebar({
                     transition-all
                     duration-200
 
-                    ${
-                      isActive
-                        ? "bg-[#DDE5D6] text-[#173D2D] shadow-sm"
-                        : "text-[#DDE5D6] hover:bg-white/10 hover:text-white"
+                    ${isActive
+                      ? "bg-[#DDE5D6] text-[#173D2D] shadow-sm"
+                      : "text-[#DDE5D6] hover:bg-white/10 hover:text-white"
                     }
                     `
                   }

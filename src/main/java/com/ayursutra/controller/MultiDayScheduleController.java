@@ -13,21 +13,17 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class MultiDayScheduleController {
 
-    private final MultiDayScheduleService
-            multiDayScheduleService;
+    private final MultiDayScheduleService multiDayScheduleService;
 
     @PostMapping("/generate-multi-day")
     public ApiResponse<MultiDayScheduleResponse>
     generateMultiDaySchedule(
-            @Valid @RequestBody
-            MultiDayScheduleRequest request) {
+            @Valid @RequestBody MultiDayScheduleRequest request) {
 
         return new ApiResponse<>(
                 true,
                 "Multi-day schedule generated successfully",
-                multiDayScheduleService.generateSchedule(
-                        request.getTherapyPlanId()
-                )
+                multiDayScheduleService.generateSchedule(request)
         );
     }
 }

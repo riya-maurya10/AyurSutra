@@ -17,6 +17,17 @@ export interface PatientResponse {
   address: string;
   medicalHistory: string;
 }
+export interface CreatePatientRequest {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  age: number;
+  gender: string;
+  address: string;
+  medicalHistory: string;
+}
+
 
 /*
  * ============================================================
@@ -173,6 +184,17 @@ export const getPatientById = async (
     await apiClient.get<
       ApiResponse<PatientResponse>
     >(`/patients/${id}`);
+
+  return response.data.data;
+};
+
+export const createPatient = async (
+  request: CreatePatientRequest
+): Promise<PatientResponse> => {
+  const response = await apiClient.post<ApiResponse<PatientResponse>>(
+    "/patients",
+    request
+  );
 
   return response.data.data;
 };

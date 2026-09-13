@@ -1,5 +1,6 @@
 package com.ayursutra.scheduler;
 
+import com.ayursutra.dto.request.MultiDayScheduleRequest;
 import com.ayursutra.dto.response.MultiDayScheduleResponse;
 import com.ayursutra.dto.response.TherapySessionResponse;
 import com.ayursutra.entity.TherapyPlan;
@@ -9,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -26,11 +26,41 @@ public class MultiDayScheduleServiceImpl
 
     @Override
     public MultiDayScheduleResponse generateSchedule(
-            String therapyPlanId) {
+            MultiDayScheduleRequest request) {
 
         // -------------------------------------------------
-        // 1. Find Therapy Plan
+        // 1. Validate Request
         // -------------------------------------------------
+
+        if (request == null) {
+            throw new RuntimeException(
+                    "Multi-day schedule request is required"
+            );
+        }
+
+        if (request.getTherapyPlanId() == null ||
+                request.getTherapyPlanId().isBlank()) {
+
+            throw new RuntimeException(
+                    "Therapy plan ID is required"
+            );
+        }
+
+        if (request.getSessions() == null ||
+                request.getSessions().isEmpty()) {
+
+            throw new RuntimeException(
+                    "At least one session is required"
+            );
+        }
+
+
+        // -------------------------------------------------
+        // 2. Find Therapy Plan
+        // -------------------------------------------------
+
+        String therapyPlanId =
+                request.getTherapyPlanId();
 
         TherapyPlan plan =
                 therapyPlanRepository.findById(therapyPlanId)
@@ -43,7 +73,7 @@ public class MultiDayScheduleServiceImpl
 
 
         // -------------------------------------------------
-        // 2. Validate Plan Dates
+        // 3. Validate Plan Dates
         // -------------------------------------------------
 
         if (plan.getStartDate() == null ||
@@ -64,7 +94,7 @@ public class MultiDayScheduleServiceImpl
 
 
         // -------------------------------------------------
-        // 3. Validate Therapies
+        // 4. Validate Plan Therapies
         // -------------------------------------------------
 
         if (plan.getTherapies() == null ||
@@ -77,16 +107,15 @@ public class MultiDayScheduleServiceImpl
 
 
         // -------------------------------------------------
-        // 4. Sort therapies
+        // 5. Sort Plan Therapies
         //
-        // First by Day
-        // Then by Sequence Order
+        // Used to determine the expected dependency order.
         // -------------------------------------------------
 
-        List<TherapyPlanItem> therapies =
+        List<TherapyPlanItem> planTherapies =
                 new ArrayList<>(plan.getTherapies());
 
-        therapies.sort(
+        planTherapies.sort(
                 Comparator
                         .comparing(
                                 TherapyPlanItem::getDay,
@@ -104,7 +133,7 @@ public class MultiDayScheduleServiceImpl
 
 
         // -------------------------------------------------
-        // 5. Store generated sessions
+        // 6. Store Created Sessions
         // -------------------------------------------------
 
         List<TherapySessionResponse> createdSessions =
@@ -112,118 +141,179 @@ public class MultiDayScheduleServiceImpl
 
 
         // -------------------------------------------------
-        // 6. Generate schedule for every therapy
+        // 7. Process Receptionist Selected Sessions
         // -------------------------------------------------
 
-        for (TherapyPlanItem item : therapies) {
-
-            // -------------------------------------------------
-            // Validate Day
-            // -------------------------------------------------
-
-            if (item.getDay() == null ||
-                    item.getDay() <= 0) {
-
-                throw new RuntimeException(
-                        "Invalid therapy day for therapy: "
-                                + item.getTherapyName()
-                );
-            }
-
+        for (
+                MultiDayScheduleRequest.MultiDaySessionRequest
+                        sessionRequest
+                : request.getSessions()
+        ) {
 
             // -------------------------------------------------
             // Validate Therapy ID
             // -------------------------------------------------
 
-            if (item.getTherapyId() == null ||
-                    item.getTherapyId().isBlank()) {
+            if (sessionRequest.getTherapyId() == null ||
+                    sessionRequest.getTherapyId().isBlank()) {
 
                 throw new RuntimeException(
-                        "Therapy ID is required for: "
-                                + item.getTherapyName()
+                        "Therapy ID is required"
                 );
             }
 
 
             // -------------------------------------------------
-            // Calculate Session Date
-            //
-            // Day 1 = Start Date
-            // Day 2 = Start Date + 1
-            // Day 3 = Start Date + 2
+            // Find Therapy Inside Plan
+            // -------------------------------------------------
+
+            TherapyPlanItem planItem =
+                    planTherapies.stream()
+                            .filter(item ->
+                                    item.getTherapyId() != null &&
+                                            item.getTherapyId()
+                                                    .equals(
+                                                            sessionRequest
+                                                                    .getTherapyId()
+                                                    )
+                            )
+                            .findFirst()
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Therapy "
+                                                    + sessionRequest
+                                                    .getTherapyId()
+                                                    + " does not belong to therapy plan"
+                                    )
+                            );
+
+
+            // -------------------------------------------------
+            // Validate Date
             // -------------------------------------------------
 
             LocalDate sessionDate =
-                    plan.getStartDate()
-                            .plusDays(item.getDay() - 1L);
+                    sessionRequest.getSessionDate();
 
+            if (sessionDate == null) {
 
-            // -------------------------------------------------
-            // Make sure date is inside plan
-            // -------------------------------------------------
+                throw new RuntimeException(
+                        "Session date is required for therapy: "
+                                + planItem.getTherapyName()
+                );
+            }
+
+            if (sessionDate.isBefore(
+                    plan.getStartDate())) {
+
+                throw new RuntimeException(
+                        "Session date for "
+                                + planItem.getTherapyName()
+                                + " cannot be before therapy plan start date"
+                );
+            }
 
             if (sessionDate.isAfter(
                     plan.getEndDate())) {
 
                 throw new RuntimeException(
-                        "Therapy day "
-                                + item.getDay()
-                                + " falls outside therapy plan dates"
+                        "Session date for "
+                                + planItem.getTherapyName()
+                                + " cannot be after therapy plan end date"
                 );
             }
 
 
             // -------------------------------------------------
-            // Default starting time
-            //
-            // Existing Scheduling Engine will handle:
-            // - Therapist allocation
-            // - Room allocation
-            // - Conflict detection
+            // Validate Start Time
             // -------------------------------------------------
 
-            LocalTime startTime =
-                    LocalTime.of(9, 0);
+            if (sessionRequest.getStartTime() == null) {
+
+                throw new RuntimeException(
+                        "Start time is required for therapy: "
+                                + planItem.getTherapyName()
+                );
+            }
 
 
             // -------------------------------------------------
             // Create Scheduling Request
+            //
+            // Selected therapist and room are passed through
+            // when provided.
             // -------------------------------------------------
 
-            SchedulingRequest request =
+            SchedulingRequest schedulingRequest =
                     new SchedulingRequest();
 
-            request.setTherapyPlanId(
+            schedulingRequest.setTherapyPlanId(
                     therapyPlanId
             );
 
-            request.setTherapyId(
-                    item.getTherapyId()
+            schedulingRequest.setTherapyId(
+                    sessionRequest.getTherapyId()
             );
 
-            request.setSessionDate(
+            schedulingRequest.setSessionDate(
                     sessionDate
             );
 
-            request.setStartTime(
-                    startTime
+            schedulingRequest.setStartTime(
+                    sessionRequest.getStartTime()
             );
 
-            request.setNotes(
-                    "MULTI-DAY SCHEDULE - DAY "
-                            + item.getDay()
-                            + " - "
-                            + item.getTherapyName()
-            );
+
+            if (sessionRequest.getTherapistId() != null &&
+                    !sessionRequest.getTherapistId().isBlank()) {
+
+                schedulingRequest.setTherapistId(
+                        sessionRequest.getTherapistId()
+                );
+            }
+
+
+            if (sessionRequest.getRoomId() != null &&
+                    !sessionRequest.getRoomId().isBlank()) {
+
+                schedulingRequest.setRoomId(
+                        sessionRequest.getRoomId()
+                );
+            }
+
+
+            if (sessionRequest.getNotes() != null &&
+                    !sessionRequest.getNotes().isBlank()) {
+
+                schedulingRequest.setNotes(
+                        sessionRequest.getNotes()
+                );
+
+            } else {
+
+                schedulingRequest.setNotes(
+                        "MULTI-DAY SCHEDULE - DAY "
+                                + planItem.getDay()
+                                + " - "
+                                + planItem.getTherapyName()
+                );
+            }
 
 
             // -------------------------------------------------
             // Call Existing Scheduling Engine
+            //
+            // This preserves existing:
+            // - dependency validation
+            // - therapist validation
+            // - room validation
+            // - patient conflict validation
+            // - therapy validation
             // -------------------------------------------------
 
             SchedulingResponse response =
                     schedulingService.scheduleTherapy(
-                            request
+                            schedulingRequest
                     );
 
 
@@ -241,9 +331,9 @@ public class MultiDayScheduleServiceImpl
 
                 throw new RuntimeException(
                         "Failed to schedule "
-                                + item.getTherapyName()
-                                + " on day "
-                                + item.getDay()
+                                + planItem.getTherapyName()
+                                + " on "
+                                + sessionDate
                                 + ": "
                                 + message
                 );
@@ -251,7 +341,7 @@ public class MultiDayScheduleServiceImpl
 
 
             // -------------------------------------------------
-            // Add generated session
+            // Store Created Session
             // -------------------------------------------------
 
             if (response.getSession() != null) {
@@ -264,7 +354,7 @@ public class MultiDayScheduleServiceImpl
 
 
         // -------------------------------------------------
-        // 7. Return Final Response
+        // 8. Return Final Response
         // -------------------------------------------------
 
         return new MultiDayScheduleResponse(

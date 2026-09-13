@@ -157,6 +157,7 @@ function getStatusIcon(status: TherapySessionStatus) {
 function TherapistSessionsPage() {
   const [sessions, setSessions] = useState<TherapySession[]>([]);
   const [patients, setPatients] = useState<AssignedPatient[]>([]);
+  const [roomNumbers, setRoomNumbers] = useState<Record<string, string>>({});
 
   const [therapistName, setTherapistName] = useState(
     localStorage.getItem("userFullName") || "Therapist"
@@ -203,6 +204,50 @@ function TherapistSessionsPage() {
       const therapistSessions = await getSessionsByTherapist(therapist.id);
 
       setSessions(therapistSessions);
+
+      /*
+       * Sessions only contain roomId.
+       * Fetch the actual room number for each unique room.
+       */
+      const roomIds = [
+        ...new Set(
+          therapistSessions
+            .map((session) => session.roomId)
+            .filter((id): id is string => Boolean(id))
+        ),
+      ];
+
+      if (roomIds.length > 0) {
+        try {
+          const roomResponses = await Promise.all(
+            roomIds.map(async (roomId) => {
+              const response = await apiClient.get<
+                ApiResponse<{
+                  id: string;
+                  roomNumber: string;
+                }>
+              >(`/rooms/${roomId}`);
+
+              return response.data.data;
+            })
+          );
+
+          const roomNumberMap: Record<string, string> = {};
+
+          roomResponses.forEach((room) => {
+            if (room?.id && room.roomNumber) {
+              roomNumberMap[room.id] = room.roomNumber;
+            }
+          });
+
+          setRoomNumbers(roomNumberMap);
+        } catch (err) {
+          console.error("Failed to load room details:", err);
+          setRoomNumbers({});
+        }
+      } else {
+        setRoomNumbers({});
+      }
 
       /*
        * Therapist-scoped patient endpoint.
@@ -655,7 +700,7 @@ function TherapistSessionsPage() {
 
                           <p className="mt-0.5 truncate text-sm font-medium text-[#294F3E]">
                             {session.roomId
-                              ? `Room ${session.roomId.slice(-6)}`
+                              ? roomNumbers[session.roomId] || "Room assigned"
                               : "Not assigned"}
                           </p>
                         </div>

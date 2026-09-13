@@ -45,12 +45,22 @@ import TherapistPatientDetailsPage from "./pages/therapist/TherapistPatientDetai
 import TherapistSessionsPage from "./pages/therapist/TherapistSessionsPage";
 import TherapistSessionHistoryPage from "./pages/therapist/TherapistSessionHistoryPage";
 import TherapistProfilePage from "./pages/therapist/TherapistProfilePage";
+import TherapistUpcomingSessionsPage from "./pages/therapist/TherapistUpcomingSessionsPage";
 
 // =====================================================
 // RECEPTIONIST
 // =====================================================
 
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
+import ReceptionistSchedulerPage from "./pages/receptionist/ReceptionistSchedulerPage";
+import ReceptionistLayout from "./layouts/ReceptionistLayout";
+import ReceptionistPatientsPage from "./pages/receptionist/ReceptionistPatientsPage";
+import ReceptionistPatientDetailsPage from "./pages/receptionist/ReceptionistPatientDetailsPage";
+import ReceptionistRegisterPatientPage from "./pages/receptionist/ReceptionistRegisterPatientPage";
+import ReceptionistTherapiesPage from "./pages/receptionist/ReceptionistTherapiesPage";
+import ReceptionistRoomsPage from "./pages/receptionist/ReceptionistRoomsPage";
+import ReceptionistTherapySessionsPage from "./pages/receptionist/ReceptionistTherapySessionsPage";
+import ReceptionistEquipmentPage from "./pages/receptionist/ReceptionistEquipmentPage";
 
 // =====================================================
 // PATIENT
@@ -221,6 +231,11 @@ function App() {
         />
 
         <Route
+          path="/therapist/upcoming"
+          element={<TherapistUpcomingSessionsPage />}
+        />
+
+        <Route
           path="/therapist/history"
           element={<TherapistSessionHistoryPage />}
         />
@@ -230,23 +245,64 @@ function App() {
           element={<TherapistProfilePage />}
         />
 
+
+
       </Route>
 
       {/* =====================================================
-          RECEPTIONIST
-          ===================================================== */}
+    RECEPTIONIST
+    ===================================================== */}
 
       <Route
         element={
-          <ProtectedRoute
-            allowedRoles={["RECEPTIONIST"]}
-          />
+          <ProtectedRoute allowedRoles={["RECEPTIONIST"]} />
         }
       >
         <Route
           path="/receptionist"
-          element={<ReceptionistDashboard />}
-        />
+          element={<ReceptionistLayout />}
+        >
+          <Route
+            index
+            element={<ReceptionistDashboard />}
+          />
+
+          <Route
+            path="patients"
+            element={<ReceptionistPatientsPage />}
+          />
+
+          <Route
+            path="patients/register"
+            element={<ReceptionistRegisterPatientPage />}
+          />
+
+          <Route
+            path="patients/:id"
+            element={<ReceptionistPatientDetailsPage />}
+          />
+
+          <Route
+            path="therapies"
+            element={<ReceptionistTherapiesPage />}
+          />
+
+          <Route
+            path="rooms"
+            element={<ReceptionistRoomsPage />}
+          />
+          <Route path="equipment" element={<ReceptionistEquipmentPage />} />
+
+          <Route
+            path="scheduler"
+            element={<ReceptionistSchedulerPage />}
+          />
+
+          <Route
+            path="sessions"
+            element={<ReceptionistTherapySessionsPage />}
+          />
+        </Route>
       </Route>
 
       {/* =====================================================
