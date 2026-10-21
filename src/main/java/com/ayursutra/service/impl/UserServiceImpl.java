@@ -56,4 +56,32 @@ public class UserServiceImpl implements UserService {
                 .map(UserMapper::toResponse)
                 .toList();
     }
+
+    @Override
+    public UserResponse deactivateUser(String userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        user.setEnabled(false);
+
+        userRepository.save(user);
+
+        return UserMapper.toResponse(user);
+    }
+
+    @Override
+    public UserResponse activateUser(String userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        user.setEnabled(true);
+
+        userRepository.save(user);
+
+        return UserMapper.toResponse(user);
+    }
 }

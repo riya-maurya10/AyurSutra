@@ -1,5 +1,6 @@
 package com.ayursutra.service.impl;
 
+import com.ayursutra.constant.AuditAction;
 import com.ayursutra.dto.request.AuditLogRequest;
 import com.ayursutra.dto.response.AuditLogResponse;
 import com.ayursutra.entity.AuditLog;
@@ -16,8 +17,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class AuditServiceImpl
-        implements AuditService {
+public class AuditServiceImpl implements AuditService {
 
     private final AuditLogRepository auditLogRepository;
 
@@ -25,17 +25,51 @@ public class AuditServiceImpl
     public AuditLogResponse createAuditLog(
             AuditLogRequest request) {
 
+        AuditLog auditLog = buildAuditLog(
+                request.getAction(),
+                request.getEntityType(),
+                request.getEntityId(),
+                request.getEntityName(),
+                request.getDescription()
+        );
+
+        AuditLog saved = auditLogRepository.save(auditLog);
+
+        return toResponse(saved);
+    }
+
+    @Override
+    public void log(
+            AuditAction action,
+            String entityType,
+            String entityId,
+            String entityName,
+            String description) {
+
+        AuditLog auditLog = buildAuditLog(
+                action,
+                entityType,
+                entityId,
+                entityName,
+                description
+        );
+
+        auditLogRepository.save(auditLog);
+    }
+
+    private AuditLog buildAuditLog(
+            AuditAction action,
+            String entityType,
+            String entityId,
+            String entityName,
+            String description) {
+
         Authentication authentication =
                 SecurityContextHolder
                         .getContext()
                         .getAuthentication();
 
-        AuditLog auditLog =
-                new AuditLog();
-
-        // ---------------------------------
-        // Get logged-in user
-        // ---------------------------------
+        AuditLog auditLog = new AuditLog();
 
         if (authentication != null &&
                 authentication.getPrincipal()
@@ -50,34 +84,14 @@ public class AuditServiceImpl
             );
         }
 
-        // ---------------------------------
-        // Audit information
-        // ---------------------------------
+        auditLog.setAction(action);
+        auditLog.setEntityType(entityType);
+        auditLog.setEntityId(entityId);
+        auditLog.setEntityName(entityName);
+        auditLog.setDescription(description);
+        auditLog.setTimestamp(LocalDateTime.now());
 
-        auditLog.setAction(
-                request.getAction()
-        );
-
-        auditLog.setEntityType(
-                request.getEntityType()
-        );
-
-        auditLog.setEntityId(
-                request.getEntityId()
-        );
-
-        auditLog.setDescription(
-                request.getDescription()
-        );
-
-        auditLog.setTimestamp(
-                LocalDateTime.now()
-        );
-
-        AuditLog saved =
-                auditLogRepository.save(auditLog);
-
-        return toResponse(saved);
+        return auditLog;
     }
 
     @Override
@@ -116,8 +130,7 @@ public class AuditServiceImpl
     }
 
     @Override
-    public List<AuditLogResponse>
-    getAuditLogsByEntityType(
+    public List<AuditLogResponse> getAuditLogsByEntityType(
             String entityType) {
 
         return auditLogRepository
@@ -128,8 +141,7 @@ public class AuditServiceImpl
     }
 
     @Override
-    public List<AuditLogResponse>
-    getAuditLogsByEntityId(
+    public List<AuditLogResponse> getAuditLogsByEntityId(
             String entityId) {
 
         return auditLogRepository
@@ -150,6 +162,7 @@ public class AuditServiceImpl
                 auditLog.getAction(),
                 auditLog.getEntityType(),
                 auditLog.getEntityId(),
+                auditLog.getEntityName(),
                 auditLog.getDescription(),
                 auditLog.getTimestamp()
         );

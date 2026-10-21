@@ -26,6 +26,8 @@ public class AuditLogResponse {
 
     private String entityId;
 
+    private String entityName;
+
     private String description;
 
     private LocalDateTime timestamp;

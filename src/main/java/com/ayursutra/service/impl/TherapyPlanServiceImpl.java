@@ -2,16 +2,18 @@ package com.ayursutra.service.impl;
 
 import com.ayursutra.dto.request.TherapyPlanRequest;
 import com.ayursutra.dto.response.TherapyPlanResponse;
-import com.ayursutra.entity.Doctor;
-import com.ayursutra.entity.Patient;
 import com.ayursutra.entity.TherapyPlan;
-import com.ayursutra.mapper.TherapyPlanMapper;
+import com.ayursutra.entity.TherapySession;
 import com.ayursutra.repository.DoctorRepository;
 import com.ayursutra.repository.PatientRepository;
 import com.ayursutra.repository.TherapyPlanRepository;
-import com.ayursutra.security.UserPrincipal;
+import com.ayursutra.repository.TherapySessionRepository;
 import com.ayursutra.service.TherapyPlanService;
+import com.ayursutra.mapper.TherapyPlanMapper;
+import com.ayursutra.security.UserPrincipal;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -20,47 +22,75 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class TherapyPlanServiceImpl
-        implements TherapyPlanService {
+public class TherapyPlanServiceImpl implements TherapyPlanService {
 
     private final TherapyPlanRepository therapyPlanRepository;
     private final TherapyPlanMapper therapyPlanMapper;
+
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
 
+    /*
+     * Used to calculate Therapy Plan status automatically
+     * from its Therapy Sessions.
+     */
+    private final TherapySessionRepository therapySessionRepository;
+
+
+    // =========================================================
+    // CREATE PLAN
+    // =========================================================
+
     @Override
-    public TherapyPlanResponse createPlan(
-            TherapyPlanRequest request) {
+    public TherapyPlanResponse createPlan(TherapyPlanRequest request) {
 
-        if (request.getEndDate()
-                .isBefore(request.getStartDate())) {
-
-            throw new RuntimeException(
-                    "End date cannot be before start date"
-            );
-        }
+        validatePlanDates(request);
 
         TherapyPlan plan =
                 therapyPlanMapper.toEntity(request);
 
-        TherapyPlan savedPlan =
+        /*
+         * New plan always starts as PLANNED.
+         */
+        plan.setStatus("PLANNED");
+
+        TherapyPlan saved =
                 therapyPlanRepository.save(plan);
 
-        return therapyPlanMapper.toResponse(savedPlan);
+        return therapyPlanMapper.toResponse(saved);
     }
+
+
+    // =========================================================
+    // GET ALL PLANS
+    // =========================================================
 
     @Override
     public List<TherapyPlanResponse> getAllPlans() {
 
-        return therapyPlanRepository.findAll()
-                .stream()
+        List<TherapyPlan> plans =
+                therapyPlanRepository.findAll();
+
+        /*
+         * IMPORTANT:
+         *
+         * Recalculate status before sending plans
+         * to Admin / Doctor / other consumers.
+         *
+         * This also fixes old plans whose stored status
+         * was not updated previously.
+         */
+        plans.forEach(this::refreshPlanStatus);
+
+        return plans.stream()
                 .map(therapyPlanMapper::toResponse)
                 .toList();
     }
 
-    // =====================================================
-    // PATIENT - MY PLANS
-    // =====================================================
+
+    // =========================================================
+    // GET MY PATIENT PLANS
+    // =========================================================
 
     @Override
     public List<TherapyPlanResponse> getMyPlans() {
@@ -76,24 +106,33 @@ public class TherapyPlanServiceImpl
         String userId =
                 principal.getUser().getId();
 
-        Patient patient =
-                patientRepository.findByUserId(userId)
+        var patient =
+                patientRepository
+                        .findByUserId(userId)
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Patient profile not found"
                                 )
                         );
 
-        return therapyPlanRepository
-                .findByPatientId(patient.getId())
-                .stream()
+        List<TherapyPlan> plans =
+                therapyPlanRepository
+                        .findByPatientId(patient.getId());
+
+        /*
+         * Recalculate status for every plan.
+         */
+        plans.forEach(this::refreshPlanStatus);
+
+        return plans.stream()
                 .map(therapyPlanMapper::toResponse)
                 .toList();
     }
 
-    // =====================================================
-    // DOCTOR - MY THERAPY PLANS
-    // =====================================================
+
+    // =========================================================
+    // GET MY DOCTOR PLANS
+    // =========================================================
 
     @Override
     public List<TherapyPlanResponse> getMyDoctorPlans() {
@@ -103,132 +142,293 @@ public class TherapyPlanServiceImpl
                         .getContext()
                         .getAuthentication();
 
-        if (authentication == null ||
-                !(authentication.getPrincipal()
-                        instanceof UserPrincipal)) {
-
-            throw new RuntimeException(
-                    "User not authenticated"
-            );
-        }
-
         UserPrincipal principal =
                 (UserPrincipal) authentication.getPrincipal();
 
         String userId =
                 principal.getUser().getId();
 
-        Doctor doctor =
-                doctorRepository.findByUserId(userId)
+        var doctor =
+                doctorRepository
+                        .findByUserId(userId)
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Doctor profile not found"
                                 )
                         );
 
-        return therapyPlanRepository
-                .findByDoctorId(doctor.getId())
-                .stream()
+        List<TherapyPlan> plans =
+                therapyPlanRepository
+                        .findByDoctorId(doctor.getId());
+
+        /*
+         * Recalculate status for every plan.
+         */
+        plans.forEach(this::refreshPlanStatus);
+
+        return plans.stream()
                 .map(therapyPlanMapper::toResponse)
                 .toList();
     }
 
-    // =====================================================
-    // GET BY ID
-    // =====================================================
+
+    // =========================================================
+    // GET PLAN BY ID
+    // =========================================================
 
     @Override
-    public TherapyPlanResponse getPlanById(
-            String id) {
+    public TherapyPlanResponse getPlanById(String id) {
 
         TherapyPlan plan =
-                therapyPlanRepository.findById(id)
+                therapyPlanRepository
+                        .findById(id)
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Therapy plan not found"
-                                ));
+                                )
+                        );
+
+        /*
+         * Recalculate status before returning.
+         */
+        refreshPlanStatus(plan);
 
         return therapyPlanMapper.toResponse(plan);
     }
 
-    // =====================================================
-    // UPDATE
-    // =====================================================
+
+    // =========================================================
+    // UPDATE PLAN
+    // =========================================================
 
     @Override
     public TherapyPlanResponse updatePlan(
             String id,
-            TherapyPlanRequest request) {
+            TherapyPlanRequest request
+    ) {
 
-        if (request.getEndDate()
-                .isBefore(request.getStartDate())) {
+        validatePlanDates(request);
 
-            throw new RuntimeException(
-                    "End date cannot be before start date"
-            );
-        }
-
-        TherapyPlan plan =
-                therapyPlanRepository.findById(id)
+        TherapyPlan existingPlan =
+                therapyPlanRepository
+                        .findById(id)
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Therapy plan not found"
-                                ));
+                                )
+                        );
 
-        plan.setPatientId(
+        existingPlan.setPatientId(
                 request.getPatientId()
         );
 
-        plan.setDoctorId(
+        existingPlan.setDoctorId(
                 request.getDoctorId()
         );
 
-        plan.setPlanName(
+        existingPlan.setPlanName(
                 request.getPlanName()
         );
 
-        plan.setDiagnosis(
+        existingPlan.setDiagnosis(
                 request.getDiagnosis()
         );
 
-        plan.setStartDate(
+        existingPlan.setStartDate(
                 request.getStartDate()
         );
 
-        plan.setEndDate(
+        existingPlan.setEndDate(
                 request.getEndDate()
         );
 
-        plan.setStatus(
-                request.getStatus()
-        );
+        /*
+         * Do NOT blindly trust the status coming
+         * from frontend.
+         *
+         * Status should be derived from sessions.
+         */
 
-        plan.setTherapies(
+        existingPlan.setTherapies(
                 request.getTherapies()
         );
 
-        TherapyPlan updatedPlan =
-                therapyPlanRepository.save(plan);
+        TherapyPlan saved =
+                therapyPlanRepository.save(existingPlan);
 
-        return therapyPlanMapper.toResponse(
-                updatedPlan
-        );
+        /*
+         * Recalculate after update.
+         */
+        refreshPlanStatus(saved);
+
+        return therapyPlanMapper.toResponse(saved);
     }
 
-    // =====================================================
-    // DELETE
-    // =====================================================
+
+    // =========================================================
+    // DELETE PLAN
+    // =========================================================
 
     @Override
     public void deletePlan(String id) {
 
         if (!therapyPlanRepository.existsById(id)) {
-
             throw new RuntimeException(
                     "Therapy plan not found"
             );
         }
 
         therapyPlanRepository.deleteById(id);
+    }
+
+
+    // =========================================================
+    // AUTOMATIC STATUS CALCULATION
+    // =========================================================
+
+    private void refreshPlanStatus(TherapyPlan plan) {
+
+        if (plan == null || plan.getId() == null) {
+            return;
+        }
+
+        /*
+         * If the plan itself has been explicitly cancelled,
+         * don't automatically change it.
+         */
+        if ("CANCELLED".equalsIgnoreCase(
+                plan.getStatus()
+        )) {
+            return;
+        }
+
+        List<TherapySession> sessions =
+                therapySessionRepository
+                        .findByTherapyPlanId(plan.getId());
+
+        /*
+         * No sessions yet.
+         */
+        if (sessions == null || sessions.isEmpty()) {
+
+            if (!"PLANNED".equalsIgnoreCase(
+                    plan.getStatus()
+            )) {
+
+                plan.setStatus("PLANNED");
+
+                therapyPlanRepository.save(plan);
+            }
+
+            return;
+        }
+
+
+        // =====================================================
+        // CHECK COMPLETION
+        // =====================================================
+
+        boolean allCompleted =
+                sessions.stream()
+                        .allMatch(session ->
+                                "COMPLETED".equalsIgnoreCase(
+                                        session.getStatus() != null
+                                                ? session.getStatus().name()
+                                                : ""
+                                )
+                        );
+
+        if (allCompleted) {
+
+            if (!"COMPLETED".equalsIgnoreCase(
+                    plan.getStatus()
+            )) {
+
+                plan.setStatus("COMPLETED");
+
+                therapyPlanRepository.save(plan);
+            }
+
+            return;
+        }
+
+
+        // =====================================================
+        // CHECK WHETHER TREATMENT HAS STARTED
+        // =====================================================
+
+        boolean treatmentStarted =
+                sessions.stream()
+                        .anyMatch(session -> {
+
+                            if (session.getStatus() == null) {
+                                return false;
+                            }
+
+                            String status =
+                                    session.getStatus().name();
+
+                            return "IN_PROGRESS".equalsIgnoreCase(status)
+                                    || "COMPLETED".equalsIgnoreCase(status);
+                        });
+
+
+        if (treatmentStarted) {
+
+            if (!"IN_PROGRESS".equalsIgnoreCase(
+                    plan.getStatus()
+            )) {
+
+                plan.setStatus("IN_PROGRESS");
+
+                therapyPlanRepository.save(plan);
+            }
+
+            return;
+        }
+
+
+        // =====================================================
+        // OTHERWISE PLAN IS STILL PLANNED
+        // =====================================================
+
+        if (!"PLANNED".equalsIgnoreCase(
+                plan.getStatus()
+        )) {
+
+            plan.setStatus("PLANNED");
+
+            therapyPlanRepository.save(plan);
+        }
+    }
+
+
+    // =========================================================
+    // VALIDATION
+    // =========================================================
+
+    private void validatePlanDates(
+            TherapyPlanRequest request
+    ) {
+
+        if (request.getStartDate() == null) {
+            throw new IllegalArgumentException(
+                    "Start date is required"
+            );
+        }
+
+        if (request.getEndDate() == null) {
+            throw new IllegalArgumentException(
+                    "End date is required"
+            );
+        }
+
+        if (request.getEndDate()
+                .isBefore(request.getStartDate())) {
+
+            throw new IllegalArgumentException(
+                    "End date cannot be before start date"
+            );
+        }
     }
 }

@@ -16,6 +16,8 @@ public class AuditLogRequest {
 
     private String entityId;
 
+    private String entityName;
+
     @NotBlank
     private String description;
 }

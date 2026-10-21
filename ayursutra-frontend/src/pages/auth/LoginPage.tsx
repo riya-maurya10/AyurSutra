@@ -63,17 +63,20 @@ function LoginPage() {
       navigate(getDashboardPath(data.role), {
         replace: true,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
 
+      const backendMessage =
+        error?.response?.data?.message;
+
       setMessage(
+        backendMessage ||
         "Login failed. Please check your email and password."
       );
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div className="relative min-h-screen overflow-hidden">
 
@@ -102,9 +105,9 @@ function LoginPage() {
           ===================================================== */}
 
       <button
-  type="button"
-  onClick={() => navigate("/")}
-  className="
+        type="button"
+        onClick={() => navigate("/")}
+        className="
     absolute
     left-8
     top-8
@@ -119,10 +122,10 @@ function LoginPage() {
     duration-200
     hover:text-[#6B7F4E]
   "
->
-  <span className="text-lg leading-none">←</span>
-  Back to Home
-</button>
+      >
+        <span className="text-lg leading-none">←</span>
+        Back to Home
+      </button>
 
       {/* =====================================================
           MAIN CONTENT

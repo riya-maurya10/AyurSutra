@@ -3,13 +3,37 @@ package com.ayursutra.exception;
 import com.ayursutra.util.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handle validation/business errors
+    // =========================================================
+    // HANDLE DEACTIVATED USER ACCOUNT
+    // =========================================================
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDisabledAccount(
+            DisabledException exception) {
+
+        ApiResponse<Object> response = new ApiResponse<>(
+                false,
+                "Your account has been deactivated. Please contact the clinic administrator.",
+                null
+        );
+
+        return new ResponseEntity<>(
+                response,
+                HttpStatus.FORBIDDEN
+        );
+    }
+
+    // =========================================================
+    // HANDLE VALIDATION / BUSINESS ERRORS
+    // =========================================================
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiResponse<Object>> handleBadRequest(
             BadRequestException exception) {
@@ -26,7 +50,10 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // Handle all other unexpected errors
+    // =========================================================
+    // HANDLE ALL OTHER UNEXPECTED ERRORS
+    // =========================================================
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleException(
             Exception exception) {

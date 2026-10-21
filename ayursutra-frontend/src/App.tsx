@@ -20,6 +20,18 @@ import PrivacyPolicyPage from "./pages/public/PrivacyPolicyPage";
 // =====================================================
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminPatientsPage from "./pages/admin/AdminPatientsPage";
+import AdminDoctorsPage from "./pages/admin/AdminDoctorsPage";
+import AdminTherapistsPage from "./pages/admin/AdminTherapistsPage";
+import AdminRoomsPage from "./pages/admin/AdminRoomsPage";
+import AdminTherapiesPage from "./pages/admin/AdminTherapiesPage";
+import AdminReceptionistsPage from "./pages/admin/AdminReceptionistsPage";
+import AdminTherapyPlansPage from "./pages/admin/AdminTherapyPlansPage";
+import AdminSchedulesPage from "./pages/admin/AdminSchedulesPage";
+import AdminTherapySessionsPage from "./pages/admin/AdminTherapySessionsPage";
+import AdminPatientProgressPage from "./pages/admin/AdminPatientProgressPage";
+import AdminReportsPage from "./pages/admin/AdminReportsPage";
+import AdminAuditHistoryPage from "./pages/admin/AdminAuditHistoryPage";
 
 // =====================================================
 // DOCTOR
@@ -139,14 +151,55 @@ function App() {
 
       <Route
         element={
-          <ProtectedRoute
-            allowedRoles={["ADMIN"]}
-          />
+          <ProtectedRoute allowedRoles={["ADMIN"]} />
         }
       >
         <Route
           path="/admin"
           element={<AdminDashboard />}
+        />
+
+        <Route
+          path="/admin/patients"
+          element={<AdminPatientsPage />}
+        />
+        <Route path="/admin/doctors" element={<AdminDoctorsPage />} />
+        <Route
+          path="/admin/therapists"
+          element={<AdminTherapistsPage />}
+        />
+        <Route
+          path="/admin/receptionists"
+          element={<AdminReceptionistsPage />}
+        />
+        <Route
+          path="/admin/therapy-plans"
+          element={<AdminTherapyPlansPage />}
+        />
+        <Route path="/admin/schedules" element={<AdminSchedulesPage />} />
+        <Route
+          path="/admin/therapy-sessions"
+          element={<AdminTherapySessionsPage />}
+        />
+        <Route
+          path="/admin/progress"
+          element={<AdminPatientProgressPage />}
+        />
+        <Route
+          path="/admin/reports"
+          element={<AdminReportsPage />}
+        />
+        <Route
+  path="/admin/audit-history"
+  element={<AdminAuditHistoryPage />}
+/>
+        <Route
+          path="/admin/rooms"
+          element={<AdminRoomsPage />}
+        />
+        <Route
+          path="/admin/therapies"
+          element={<AdminTherapiesPage />}
         />
       </Route>
 

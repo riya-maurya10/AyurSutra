@@ -3,7 +3,7 @@ import type { ComponentType } from "react";
 interface StatCardProps {
   title: string;
   value: string | number;
-  description: string;
+  description?: string;
   icon: ComponentType<{ size?: number }>;
   loading?: boolean;
 }
@@ -27,9 +27,11 @@ function StatCard({
             {loading ? "..." : value}
           </p>
 
-          <p className="mt-2 text-xs text-[#7A806F]">
-            {description}
-          </p>
+          {description && (
+            <p className="...">
+              {description}
+            </p>
+          )}
         </div>
 
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E9EFE4] text-[#1F3D2E]">

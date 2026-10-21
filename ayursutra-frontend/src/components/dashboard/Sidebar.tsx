@@ -11,14 +11,13 @@ import {
   ClipboardList,
   Package,
   Activity,
-  Settings,
-  LogOut,
+  BarChart3,
+  History,
   X,
   Leaf,
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 
 interface SidebarProps {
   role: string;
@@ -59,14 +58,14 @@ const menuItems: Record<string, MenuItem[]> = {
       icon: HeartPulse,
     },
     {
-      label: "Therapies",
-      path: "/admin/therapies",
-      icon: Sparkles,
+      label: "Receptionists",
+      path: "/admin/receptionists",
+      icon: UserRound,
     },
     {
-      label: "Rooms",
-      path: "/admin/rooms",
-      icon: BedDouble,
+      label: "Therapy Plans",
+      path: "/admin/therapy-plans",
+      icon: ClipboardList,
     },
     {
       label: "Schedules",
@@ -75,9 +74,25 @@ const menuItems: Record<string, MenuItem[]> = {
     },
     {
       label: "Therapy Sessions",
-      path: "/admin/sessions",
-      icon: ClipboardList,
+      path: "/admin/therapy-sessions",
+      icon: CalendarClock,
     },
+    {
+      label: "Patient Progress",
+      path: "/admin/progress",
+      icon: Activity,
+    },
+    {
+      label: "Reports",
+      path: "/admin/reports",
+      icon: BarChart3,
+    },
+    {
+      label: "Audit & History",
+      path: "/admin/audit-history",
+      icon: History,
+    },
+
   ],
 
   // =====================================================
@@ -133,10 +148,10 @@ const menuItems: Record<string, MenuItem[]> = {
       icon: CalendarDays,
     },
     {
-  label: "Upcoming Sessions",
-  path: "/therapist/upcoming",
-  icon: CalendarClock,
-},
+      label: "Upcoming Sessions",
+      path: "/therapist/upcoming",
+      icon: CalendarClock,
+    },
     {
       label: "Session History",
       path: "/therapist/history",
@@ -169,10 +184,10 @@ const menuItems: Record<string, MenuItem[]> = {
       path: "/receptionist/rooms",
       icon: BedDouble,
     },
-    { 
-      label: "Equipment", 
-      path: "/receptionist/equipment", 
-      icon: Package 
+    {
+      label: "Equipment",
+      path: "/receptionist/equipment",
+      icon: Package,
     },
     {
       label: "Scheduler",
@@ -235,27 +250,11 @@ function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
 
-  const { logout } = useAuth();
-
   const normalizedRole =
     role?.toUpperCase() || "";
 
   const items =
     menuItems[normalizedRole] || [];
-
-  // =====================================================
-  // LOGOUT
-  // =====================================================
-
-  const handleLogout = () => {
-    logout();
-
-    onClose?.();
-
-    navigate("/login", {
-      replace: true,
-    });
-  };
 
   // =====================================================
   // ROLE HOME
@@ -280,32 +279,6 @@ function Sidebar({
 
       default:
         return "/patient";
-    }
-  };
-
-  // =====================================================
-  // SETTINGS PATH
-  // =====================================================
-
-  const getSettingsPath = () => {
-    switch (normalizedRole) {
-      case "ADMIN":
-        return "/admin/settings";
-
-      case "DOCTOR":
-        return "/doctor/settings";
-
-      case "THERAPIST":
-        return "/therapist/settings";
-
-      case "RECEPTIONIST":
-        return "/receptionist/settings";
-
-      case "PATIENT":
-        return "/patient/settings";
-
-      default:
-        return "/patient/settings";
     }
   };
 
@@ -351,7 +324,6 @@ function Sidebar({
           }
         `}
       >
-
         {/* ================================================= */}
         {/* BRAND */}
         {/* ================================================= */}
@@ -365,7 +337,6 @@ function Sidebar({
             px-6
           "
         >
-
           <button
             type="button"
             onClick={() =>
@@ -373,7 +344,6 @@ function Sidebar({
             }
             className="text-left"
           >
-
             <p
               className="
                 text-xs
@@ -396,7 +366,6 @@ function Sidebar({
             >
               Wellness Care
             </p>
-
           </button>
 
           {/* MOBILE CLOSE */}
@@ -417,7 +386,6 @@ function Sidebar({
           >
             <X size={20} />
           </button>
-
         </div>
 
         {/* ================================================= */}
@@ -425,7 +393,6 @@ function Sidebar({
         {/* ================================================= */}
 
         <div className="px-6 py-5">
-
           <div
             className="
               rounded-2xl
@@ -436,7 +403,6 @@ function Sidebar({
               backdrop-blur-sm
             "
           >
-
             <p
               className="
                 text-xs
@@ -458,9 +424,7 @@ function Sidebar({
             >
               {normalizedRole}
             </p>
-
           </div>
-
         </div>
 
         {/* ================================================= */}
@@ -472,10 +436,11 @@ function Sidebar({
             flex-1
             overflow-y-auto
             px-4
-            pb-6
+            pb-4
+            [scrollbar-width:none]
+            [&::-webkit-scrollbar]:hidden
           "
         >
-
           <p
             className="
               mb-3
@@ -491,9 +456,7 @@ function Sidebar({
           </p>
 
           <div className="space-y-1">
-
             {items.map((item) => {
-
               const Icon = item.icon;
 
               return (
@@ -526,100 +489,16 @@ function Sidebar({
                     `
                   }
                 >
-
                   <Icon size={19} />
 
                   <span>
                     {item.label}
                   </span>
-
                 </NavLink>
               );
-
             })}
-
           </div>
-
         </nav>
-
-        {/* ================================================= */}
-        {/* BOTTOM SECTION */}
-        {/* ================================================= */}
-
-        <div
-          className="
-            border-t
-            border-white/10
-            p-4
-          "
-        >
-
-          {/* SETTINGS */}
-
-          <button
-            type="button"
-            onClick={() => {
-              navigate(getSettingsPath());
-              onClose?.();
-            }}
-            className="
-              mb-2
-              flex
-              w-full
-              items-center
-              gap-3
-              rounded-xl
-              px-3
-              py-3
-              text-sm
-              font-medium
-              text-[#DDE5D6]
-              transition
-              hover:bg-white/10
-              hover:text-white
-            "
-          >
-
-            <Settings size={19} />
-
-            <span>
-              Settings
-            </span>
-
-          </button>
-
-          {/* LOGOUT */}
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="
-              flex
-              w-full
-              items-center
-              gap-3
-              rounded-xl
-              px-3
-              py-3
-              text-sm
-              font-medium
-              text-[#E8A49B]
-              transition
-              hover:bg-[#8B4A42]/20
-              hover:text-[#F2B8B0]
-            "
-          >
-
-            <LogOut size={19} />
-
-            <span>
-              Logout
-            </span>
-
-          </button>
-
-        </div>
-
       </aside>
     </>
   );

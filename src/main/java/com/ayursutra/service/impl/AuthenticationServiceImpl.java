@@ -8,6 +8,7 @@ import com.ayursutra.security.JwtService;
 import com.ayursutra.service.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public LoginResponse login(LoginRequest request) {
 
+        // =========================================================
+        // CHECK WHETHER USER EXISTS AND ACCOUNT IS ACTIVE
+        // =========================================================
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new RuntimeException("Invalid email or password")
+                );
+
+        if (!user.isEnabled()) {
+            throw new DisabledException(
+                    "Your account has been deactivated. Please contact the clinic administrator."
+            );
+        }
+
+        // =========================================================
+        // AUTHENTICATE USER
+        // =========================================================
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -29,8 +49,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 )
         );
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        // =========================================================
+        // GENERATE JWT
+        // =========================================================
 
         String token = jwtService.generateToken(user.getEmail());
 

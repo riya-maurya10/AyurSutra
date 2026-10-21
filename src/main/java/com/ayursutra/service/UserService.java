@@ -10,4 +10,8 @@ public interface UserService {
     UserResponse register(RegisterUserRequest request);
 
     List<UserResponse> getAllUsers();
+
+    UserResponse deactivateUser(String userId);
+
+    UserResponse activateUser(String userId);
 }

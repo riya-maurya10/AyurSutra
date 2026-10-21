@@ -1,10 +1,8 @@
 package com.ayursutra.controller;
 
-import com.ayursutra.dto.request.AuditLogRequest;
 import com.ayursutra.dto.response.AuditLogResponse;
 import com.ayursutra.service.AuditService;
 import com.ayursutra.util.ApiResponse;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,29 +17,12 @@ public class AuditLogController {
     private final AuditService auditService;
 
     // ---------------------------------
-    // CREATE AUDIT LOG
-    // ---------------------------------
-
-    @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<AuditLogResponse> createAuditLog(
-            @Valid @RequestBody AuditLogRequest request) {
-
-        return new ApiResponse<>(
-                true,
-                "Audit log created successfully",
-                auditService.createAuditLog(request)
-        );
-    }
-
-    // ---------------------------------
-    // GET ALL
+    // GET ALL AUDIT LOGS
     // ---------------------------------
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<List<AuditLogResponse>>
-    getAllAuditLogs() {
+    public ApiResponse<List<AuditLogResponse>> getAllAuditLogs() {
 
         return new ApiResponse<>(
                 true,
@@ -51,13 +32,12 @@ public class AuditLogController {
     }
 
     // ---------------------------------
-    // GET BY ID
+    // GET AUDIT LOG BY ID
     // ---------------------------------
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<AuditLogResponse>
-    getAuditLogById(
+    public ApiResponse<AuditLogResponse> getAuditLogById(
             @PathVariable String id) {
 
         return new ApiResponse<>(
@@ -73,8 +53,7 @@ public class AuditLogController {
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<List<AuditLogResponse>>
-    getAuditLogsByUser(
+    public ApiResponse<List<AuditLogResponse>> getAuditLogsByUser(
             @PathVariable String userId) {
 
         return new ApiResponse<>(
@@ -90,16 +69,13 @@ public class AuditLogController {
 
     @GetMapping("/entity-type/{entityType}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<List<AuditLogResponse>>
-    getAuditLogsByEntityType(
+    public ApiResponse<List<AuditLogResponse>> getAuditLogsByEntityType(
             @PathVariable String entityType) {
 
         return new ApiResponse<>(
                 true,
                 "Entity audit logs fetched successfully",
-                auditService.getAuditLogsByEntityType(
-                        entityType
-                )
+                auditService.getAuditLogsByEntityType(entityType)
         );
     }
 
@@ -109,16 +85,13 @@ public class AuditLogController {
 
     @GetMapping("/entity/{entityId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<List<AuditLogResponse>>
-    getAuditLogsByEntityId(
+    public ApiResponse<List<AuditLogResponse>> getAuditLogsByEntityId(
             @PathVariable String entityId) {
 
         return new ApiResponse<>(
                 true,
                 "Entity audit logs fetched successfully",
-                auditService.getAuditLogsByEntityId(
-                        entityId
-                )
+                auditService.getAuditLogsByEntityId(entityId)
         );
     }
 }

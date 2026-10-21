@@ -20,4 +20,5 @@ public class UserResponse {
 
     private Role role;
 
+    private boolean enabled;
 }
